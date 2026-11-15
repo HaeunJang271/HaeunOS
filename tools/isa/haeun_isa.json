@@ -1,0 +1,39 @@
+{
+  "title": "HAEUN-32 instruction metadata",
+  "note": "Authoritative opcode table for assembler, disassembler, and emulator. Executable format is HXF v1 (not HXE).",
+  "max_isa": 4,
+  "opcodes": [
+    {"id": "NOP", "op": 0, "min_isa": 1, "encoding": "none", "mnemonic": "nop"},
+    {"id": "HALT", "op": 1, "min_isa": 1, "encoding": "none", "mnemonic": "halt"},
+    {"id": "ADD", "op": 2, "min_isa": 1, "encoding": "rrr", "mnemonic": "add"},
+    {"id": "SUB", "op": 3, "min_isa": 1, "encoding": "rrr", "mnemonic": "sub"},
+    {"id": "AND", "op": 4, "min_isa": 1, "encoding": "rrr", "mnemonic": "and"},
+    {"id": "OR", "op": 5, "min_isa": 1, "encoding": "rrr", "mnemonic": "or"},
+    {"id": "XOR", "op": 6, "min_isa": 1, "encoding": "rrr", "mnemonic": "xor"},
+    {"id": "ADDI", "op": 7, "min_isa": 1, "encoding": "rri", "mnemonic": "addi"},
+    {"id": "LW", "op": 8, "min_isa": 1, "encoding": "load", "mnemonic": "lw"},
+    {"id": "SW", "op": 9, "min_isa": 1, "encoding": "store", "mnemonic": "sw"},
+    {"id": "BEQ", "op": 10, "min_isa": 1, "encoding": "branch", "mnemonic": "beq"},
+    {"id": "BNE", "op": 11, "min_isa": 1, "encoding": "branch", "mnemonic": "bne"},
+    {"id": "JAL", "op": 12, "min_isa": 1, "encoding": "jal", "mnemonic": "jal"},
+    {"id": "ECALL", "op": 13, "min_isa": 1, "encoding": "none", "mnemonic": "ecall"},
+    {"id": "JALR", "op": 14, "min_isa": 2, "encoding": "rri", "mnemonic": "jalr"},
+    {"id": "CMP", "op": 15, "min_isa": 3, "encoding": "cmp", "mnemonic": null},
+    {"id": "CSR", "op": 16, "min_isa": 4, "encoding": "csr", "mnemonic": null},
+    {"id": "ERET", "op": 17, "min_isa": 4, "encoding": "none", "mnemonic": "eret"},
+    {"id": "SFENCE", "op": 18, "min_isa": 4, "encoding": "none", "mnemonic": "sfence"}
+  ],
+  "cmp_mnemonics": [
+    {"mnemonic": "cmpeq", "cond": 0},
+    {"mnemonic": "cmpne", "cond": 1},
+    {"mnemonic": "cmplt", "cond": 2},
+    {"mnemonic": "cmple", "cond": 3},
+    {"mnemonic": "cmpgt", "cond": 4},
+    {"mnemonic": "cmpge", "cond": 5}
+  ],
+  "csr_mnemonics": [
+    {"mnemonic": "csrrw", "funct": 1},
+    {"mnemonic": "csrrs", "funct": 2},
+    {"mnemonic": "csrrc", "funct": 3}
+  ]
+}

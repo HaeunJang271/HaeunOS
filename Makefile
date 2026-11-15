@@ -1,0 +1,410 @@
+CC ?= cc
+CFLAGS ?= -std=c17 -O2 -Wall -Wextra -Wpedantic -Werror
+CPPFLAGS ?= -Iinclude
+BUILD := build
+ifeq ($(OS),Windows_NT)
+VM_BIN := $(BUILD)/haeun-vm.exe
+VM_TEST_BIN := $(BUILD)/vm-tests.exe
+HXF_TEST_BIN := $(BUILD)/hxf-tests.exe
+PYTHON ?= python
+else
+VM_BIN := $(BUILD)/haeun-vm
+VM_TEST_BIN := $(BUILD)/vm-tests
+HXF_TEST_BIN := $(BUILD)/hxf-tests
+PYTHON ?= python3
+endif
+
+.PHONY: all test toolchain-test clean release images sdk
+.DEFAULT_GOAL := all
+
+ifeq ($(OS),Windows_NT)
+$(BUILD):
+	pwsh -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(BUILD)' | Out-Null"
+clean:
+	pwsh -NoProfile -Command "if (Test-Path '$(BUILD)') { Remove-Item -LiteralPath '$(BUILD)' -Recurse -Force }"
+else
+$(BUILD):
+	mkdir -p $(BUILD)
+clean:
+	rm -rf $(BUILD)
+endif
+
+VM_CORE := src/vm.c src/board_mmio.c src/board_extra.c src/board_net.c src/trap.c src/mmu.c src/tlb.c src/pt.c \
+	src/register_file.c src/cpu_state.c src/memory_interface.c \
+	src/instruction_decoder.c src/instruction_executor.c src/instruction_trace.c \
+	src/sec_core.c src/sec_dispatch.c src/sec_ecall.c
+HFS_SRCS := src/hfs_io.c src/hfs_mkfs.c src/hfs_ops.c src/hfs_fsck.c src/proc_hfs.c src/proc_hfs_fs.c
+GFX_SRCS := src/gfx_fb.c src/gfx_pixel.c src/gfx_font.c src/gfx_wm.c \
+	src/gfx_wm_state.c src/gfx_comp.c src/gfx_ui.c src/gfx_desk.c \
+	src/gfx_ecall.c src/gfx_chrome.c src/guest_pcb.c src/evt.c
+NET_SRCS := src/net_eth.c src/net_arp.c src/net_ipv4.c src/net_udp.c src/net_tcp.c src/net_dns.c src/net_sock.c src/net_drv.c
+NET_SOCK_ECALL_SRC := src/net_sock_ecall.c
+ifeq ($(OS),Windows_NT)
+NET_BACKEND_SRC := src/net_backend_win32.c
+NET_BACKEND_LIBS := -lws2_32
+else
+NET_BACKEND_SRC := src/net_backend_posix.c
+NET_BACKEND_LIBS :=
+endif
+
+APP_SRCS := src/app_env.c src/app_env_query.c src/app_ecall.c
+SM_SRCS := src/svc_mgr.c src/svc_mgr_life.c src/svc_mgr_ecall.c
+M20_SRCS := src/ipc.c src/svc.c src/m20_ecall.c $(SM_SRCS)
+M7_SRCS := src/fb_dump.c src/ecall_mux.c src/vm_gui_host.c \
+	src/vm_net_host.c src/vm_input_host.c src/fb_view.c $(GFX_SRCS) \
+	src/proc_ecall_io.c $(HFS_SRCS) $(NET_SOCK_ECALL_SRC) $(NET_SRCS) \
+	$(NET_BACKEND_SRC) $(APP_SRCS) $(M20_SRCS)
+ifeq ($(OS),Windows_NT)
+VIEWER_SRC := src/vm_viewer_win32.c
+VIEWER_LIBS := -luser32 -lgdi32
+else
+VIEWER_SRC := src/vm_viewer_stub.c
+VIEWER_LIBS :=
+endif
+VM_SRCS := src/main.c $(VM_CORE) src/hxf.c src/hfw.c src/bootinfo.c src/disk_persist.c \
+	src/sha256.c src/sec_boot.c $(M7_SRCS) $(VIEWER_SRC)
+VM_HDRS := include/haeun/vm.h include/haeun/board_mmio.h include/haeun/board_extra.h include/haeun/trap.h \
+	include/haeun/exception_handler.h include/haeun/mmu.h include/haeun/tlb.h \
+	include/haeun/pt.h include/haeun/register_file.h include/haeun/cpu_state.h \
+	include/haeun/memory_interface.h include/haeun/instruction_decoder.h \
+	include/haeun/instruction_executor.h include/haeun/instruction_trace.h \
+	include/haeun/hxf.h include/haeun/hfw.h include/haeun/bootinfo.h \
+	include/haeun/disk_persist.h include/haeun/fb_dump.h include/haeun/ecall_mux.h \
+	include/haeun/vm_gui_host.h include/haeun/vm_net_host.h include/haeun/net_backend.h \
+	include/haeun/vm_input_host.h include/haeun/vm_viewer.h include/haeun/fb_view.h \
+	include/haeun/guest_pcb.h include/haeun/app_env.h
+$(VM_BIN): $(VM_SRCS) $(VM_HDRS) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(VM_SRCS) -o $@ $(VIEWER_LIBS) $(NET_BACKEND_LIBS)
+
+M7_TEST_BIN := $(BUILD)/m7-integration-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M7_TEST_BIN): tests/m7_integration_tests.c $(M7_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m7_integration_tests.c $(M7_SRCS) $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+
+M8_PCB_PROBE_BIN := $(BUILD)/m8-pcb-probe$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M8_PCB_PROBE_BIN): tests/m8_pcb_probe.c $(M7_SRCS) $(VM_CORE) src/hxf.c | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m8_pcb_probe.c $(M7_SRCS) $(VM_CORE) src/hxf.c -o $@ $(NET_BACKEND_LIBS)
+
+M9_NET_PROBE_BIN := $(BUILD)/m9-net-probe$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M9_NET_PROBE_BIN): tests/m9_net_probe.c $(M7_SRCS) $(VM_CORE) src/hxf.c | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m9_net_probe.c $(M7_SRCS) $(VM_CORE) src/hxf.c -o $@ $(NET_BACKEND_LIBS)
+
+M13_NET_BE_TEST_BIN := $(BUILD)/m13-net-backend-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M13_NET_BE_TEST_BIN): tests/m13_net_backend_tests.c $(NET_BACKEND_SRC) src/net_eth.c src/net_ipv4.c | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m13_net_backend_tests.c $(NET_BACKEND_SRC) src/net_eth.c src/net_ipv4.c -o $@ $(NET_BACKEND_LIBS)
+
+M14_APP_TEST_BIN := $(BUILD)/m14-app-env-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M14_APP_TEST_BIN): tests/m14_app_env_tests.c $(APP_SRCS) $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m14_app_env_tests.c $(APP_SRCS) $(GFX_SRCS) $(VM_CORE) -o $@
+
+M15_ISO_TEST_BIN := $(BUILD)/m15-isolation-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M15_ISO_TEST_BIN): tests/m15_isolation_tests.c $(APP_SRCS) $(GFX_SRCS) $(NET_SRCS) $(HFS_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m15_isolation_tests.c $(APP_SRCS) $(GFX_SRCS) $(NET_SRCS) $(HFS_SRCS) $(VM_CORE) -o $@
+
+M16_REL_TEST_BIN := $(BUILD)/m16-reliability-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M16_REL_TEST_BIN): tests/m16_reliability_tests.c $(APP_SRCS) $(GFX_SRCS) $(NET_SRCS) $(HFS_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m16_reliability_tests.c $(APP_SRCS) $(GFX_SRCS) $(NET_SRCS) $(HFS_SRCS) $(VM_CORE) -o $@
+
+M17_FAULT_TEST_BIN := $(BUILD)/m17-fault-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M17_FAULT_TEST_BIN): tests/m17_fault_tests.c src/ecall_mux.c $(APP_SRCS) $(GFX_SRCS) $(NET_SRCS) $(HFS_SRCS) $(NET_SOCK_ECALL_SRC) src/proc_ecall_io.c $(M20_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m17_fault_tests.c src/ecall_mux.c $(APP_SRCS) $(GFX_SRCS) $(NET_SRCS) $(HFS_SRCS) $(NET_SOCK_ECALL_SRC) src/proc_ecall_io.c $(M20_SRCS) $(VM_CORE) -o $@
+
+M20_UNIT_TEST_BIN := $(BUILD)/m20-unit-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M20_UNIT_TEST_BIN): tests/m20_unit_tests.c src/evt.c src/ipc.c src/svc.c | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m20_unit_tests.c src/evt.c src/ipc.c src/svc.c -o $@
+
+M20_RES_TEST_BIN := $(BUILD)/m20-resource-integrity-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M20_RES_TEST_BIN): tests/m20_resource_integrity_tests.c $(GFX_SRCS) $(NET_SRCS) $(NET_SOCK_ECALL_SRC) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m20_resource_integrity_tests.c $(GFX_SRCS) $(NET_SRCS) $(NET_SOCK_ECALL_SRC) $(VM_CORE) -o $@
+
+M20_INPUT_TEST_BIN := $(BUILD)/m20-input-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M20_INPUT_TEST_BIN): tests/m20_input_tests.c src/m20_ecall.c src/ipc.c src/svc.c $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m20_input_tests.c src/m20_ecall.c src/ipc.c src/svc.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+M20_IPC_TEST_BIN := $(BUILD)/m20-ipc-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M20_IPC_TEST_BIN): tests/m20_ipc_tests.c src/m20_ecall.c src/ipc.c src/svc.c $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m20_ipc_tests.c src/m20_ecall.c src/ipc.c src/svc.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+M20_TEXT_TEST_BIN := $(BUILD)/m20-text-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M20_TEXT_TEST_BIN): tests/m20_text_tests.c src/m20_ecall.c src/ipc.c src/svc.c $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m20_text_tests.c src/m20_ecall.c src/ipc.c src/svc.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+M20_WIN_TEST_BIN := $(BUILD)/m20-window-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M20_WIN_TEST_BIN): tests/m20_window_tests.c src/m20_ecall.c src/ipc.c src/svc.c $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m20_window_tests.c src/m20_ecall.c src/ipc.c src/svc.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+M20_LAUNCH_TEST_BIN := $(BUILD)/m20-launcher-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M20_LAUNCH_TEST_BIN): tests/m20_launcher_tests.c $(APP_SRCS) $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m20_launcher_tests.c $(APP_SRCS) $(GFX_SRCS) $(VM_CORE) -o $@
+
+M20_SM_TEST_BIN := $(BUILD)/m20-service-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M20_SM_TEST_BIN): tests/m20_service_tests.c $(APP_SRCS) $(SM_SRCS) $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m20_service_tests.c $(APP_SRCS) $(SM_SRCS) $(GFX_SRCS) $(VM_CORE) -o $@
+
+M20_FILE_TEST_BIN := $(BUILD)/m20-file-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M20_FILE_TEST_BIN): tests/m20_file_tests.c $(HFS_SRCS) $(VM_CORE) src/guest_pcb.c | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m20_file_tests.c $(HFS_SRCS) $(VM_CORE) src/guest_pcb.c src/proc_ecall_io.c -o $@
+
+M20_INTEG_TEST_BIN := $(BUILD)/m20-integration-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+M20_INTEG_SRCS := tests/m20_integration_tests.c tests/m20_integration_harness.c \
+	tests/m20_integration_core.c tests/m20_integration_sec.c
+$(M20_INTEG_TEST_BIN): $(M20_INTEG_SRCS) $(APP_SRCS) $(SM_SRCS) $(GFX_SRCS) $(HFS_SRCS) $(NET_SRCS) src/ipc.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -Itests $(M20_INTEG_SRCS) $(APP_SRCS) $(SM_SRCS) $(GFX_SRCS) $(HFS_SRCS) $(NET_SRCS) src/ipc.c $(VM_CORE) -o $@
+
+HFS_TEST_BIN := $(BUILD)/hfs-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(HFS_TEST_BIN): tests/hfs_tests.c src/hfs_io.c src/hfs_mkfs.c src/hfs_ops.c src/hfs_fsck.c include/haeun/hfs.h include/haeun/hfs_internal.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/hfs_tests.c src/hfs_io.c src/hfs_mkfs.c src/hfs_ops.c src/hfs_fsck.c -o $@
+
+PROC_HFS_TEST_BIN := $(BUILD)/proc-hfs-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(PROC_HFS_TEST_BIN): tests/proc_hfs_tests.c $(HFS_SRCS) include/haeun/proc_hfs.h include/haeun/hfs.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/proc_hfs_tests.c $(HFS_SRCS) -o $@
+
+PROC_ECALL_IO_TEST_BIN := $(BUILD)/proc-ecall-io-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(PROC_ECALL_IO_TEST_BIN): tests/proc_ecall_io_tests.c src/proc_ecall_io.c src/guest_pcb.c $(HFS_SRCS) $(VM_CORE) include/haeun/proc_hfs.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/proc_ecall_io_tests.c src/proc_ecall_io.c src/guest_pcb.c $(HFS_SRCS) $(VM_CORE) -o $@
+# guest_pcb kept explicit here (not via GFX_SRCS) for a minimal HFS ECALL link set.
+
+GFX_TEST_BIN := $(BUILD)/gfx-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(GFX_TEST_BIN): tests/gfx_tests.c $(GFX_SRCS) $(VM_CORE) include/haeun/gfx.h include/haeun/gfx_wm.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/gfx_tests.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+GFX_WM_TEST_BIN := $(BUILD)/gfx-wm-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(GFX_WM_TEST_BIN): tests/gfx_wm_tests.c $(GFX_SRCS) $(VM_CORE) include/haeun/gfx.h include/haeun/gfx_wm.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/gfx_wm_tests.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+GFX_UI_TEST_BIN := $(BUILD)/gfx-ui-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(GFX_UI_TEST_BIN): tests/gfx_ui_tests.c $(GFX_SRCS) $(VM_CORE) include/haeun/gfx.h include/haeun/gfx_wm.h include/haeun/gfx_ui.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/gfx_ui_tests.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+GFX_DESK_TEST_BIN := $(BUILD)/gfx-desk-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(GFX_DESK_TEST_BIN): tests/gfx_desk_tests.c $(GFX_SRCS) $(VM_CORE) include/haeun/gfx_desk.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/gfx_desk_tests.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+GFX_CHROME_TEST_BIN := $(BUILD)/gfx-chrome-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(GFX_CHROME_TEST_BIN): tests/gfx_chrome_tests.c $(GFX_SRCS) $(VM_CORE) include/haeun/gfx_chrome.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/gfx_chrome_tests.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+GFX_ECALL_TEST_BIN := $(BUILD)/gfx-ecall-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(GFX_ECALL_TEST_BIN): tests/gfx_ecall_tests.c $(GFX_SRCS) $(VM_CORE) include/haeun/gfx_ecall.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/gfx_ecall_tests.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+NET_TEST_BIN := $(BUILD)/net-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(NET_TEST_BIN): tests/net_tests.c $(NET_SRCS) $(VM_CORE) include/haeun/net.h include/haeun/board_net.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/net_tests.c $(NET_SRCS) $(VM_CORE) -o $@
+
+NET_ICMP_TEST_BIN := $(BUILD)/net-icmp-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(NET_ICMP_TEST_BIN): tests/net_icmp_tests.c $(NET_SRCS) $(VM_CORE) include/haeun/net.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/net_icmp_tests.c $(NET_SRCS) $(VM_CORE) -o $@
+
+NET_UDP_TEST_BIN := $(BUILD)/net-udp-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(NET_UDP_TEST_BIN): tests/net_udp_tests.c $(NET_SRCS) $(VM_CORE) include/haeun/net.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/net_udp_tests.c $(NET_SRCS) $(VM_CORE) -o $@
+
+NET_TCP_TEST_BIN := $(BUILD)/net-tcp-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(NET_TCP_TEST_BIN): tests/net_tcp_tests.c $(NET_SRCS) $(VM_CORE) include/haeun/net.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/net_tcp_tests.c $(NET_SRCS) $(VM_CORE) -o $@
+
+NET_DNS_TEST_BIN := $(BUILD)/net-dns-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(NET_DNS_TEST_BIN): tests/net_dns_tests.c $(NET_SRCS) $(VM_CORE) include/haeun/net.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/net_dns_tests.c $(NET_SRCS) $(VM_CORE) -o $@
+
+NET_SOCK_TEST_BIN := $(BUILD)/net-sock-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(NET_SOCK_TEST_BIN): tests/net_sock_tests.c $(NET_SRCS) $(VM_CORE) include/haeun/net_sock.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/net_sock_tests.c $(NET_SRCS) $(VM_CORE) -o $@
+
+NET_SOCK_ECALL_TEST_BIN := $(BUILD)/net-sock-ecall-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(NET_SOCK_ECALL_TEST_BIN): tests/net_sock_ecall_tests.c $(NET_SOCK_ECALL_SRC) src/guest_pcb.c $(NET_SRCS) $(VM_CORE) include/haeun/net_sock_ecall.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/net_sock_ecall_tests.c $(NET_SOCK_ECALL_SRC) src/guest_pcb.c $(NET_SRCS) $(VM_CORE) -o $@
+
+SEC_TEST_BIN := $(BUILD)/sec-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(SEC_TEST_BIN): tests/sec_tests.c src/hxf.c $(VM_CORE) include/haeun/sec.h include/haeun/hxf.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/sec_tests.c src/hxf.c $(VM_CORE) -o $@
+
+SEC_DISPATCH_TEST_BIN := $(BUILD)/sec-dispatch-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(SEC_DISPATCH_TEST_BIN): tests/sec_dispatch_tests.c src/hxf.c $(VM_CORE) include/haeun/sec.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/sec_dispatch_tests.c src/hxf.c $(VM_CORE) -o $@
+
+SEC_ECALL_TEST_BIN := $(BUILD)/sec-ecall-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(SEC_ECALL_TEST_BIN): tests/sec_ecall_tests.c $(VM_CORE) include/haeun/sec.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/sec_ecall_tests.c $(VM_CORE) -o $@
+
+SEC_BOOT_SRCS := src/sha256.c src/sec_boot.c src/sec_core.c
+SEC_BOOT_TEST_BIN := $(BUILD)/sec-boot-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(SEC_BOOT_TEST_BIN): tests/sec_boot_tests.c $(SEC_BOOT_SRCS) src/hxf.c include/haeun/sec_boot.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/sec_boot_tests.c $(SEC_BOOT_SRCS) src/hxf.c -o $@
+
+
+
+
+
+
+
+
+
+
+
+
+MKFS_BIN := $(BUILD)/haeun-mkfs$(if $(filter Windows_NT,$(OS)),.exe,)
+$(MKFS_BIN): tools/haeun_mkfs.c $(HFS_SRCS) include/haeun/hfs.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tools/haeun_mkfs.c $(HFS_SRCS) -o $@
+
+FSCK_BIN := $(BUILD)/haeun-fsck$(if $(filter Windows_NT,$(OS)),.exe,)
+$(FSCK_BIN): tools/haeun_fsck.c $(HFS_SRCS) include/haeun/hfs.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tools/haeun_fsck.c $(HFS_SRCS) -o $@
+
+all: $(VM_BIN) $(MKFS_BIN) $(FSCK_BIN)
+
+images: all
+	$(PYTHON) tools/package_release.py --images-only
+
+release: all
+	$(PYTHON) tools/package_release.py
+
+sdk: all
+	$(PYTHON) tools/package_sdk.py
+
+$(VM_TEST_BIN): tests/vm_tests.c $(VM_CORE) include/haeun/vm.h include/haeun/board_mmio.h include/haeun/trap.h include/haeun/mmu.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/vm_tests.c $(VM_CORE) -o $@
+
+$(HXF_TEST_BIN): tests/hxf_tests.c src/hxf.c $(VM_CORE) include/haeun/hxf.h include/haeun/vm.h include/haeun/board_mmio.h include/haeun/trap.h include/haeun/mmu.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/hxf_tests.c src/hxf.c $(VM_CORE) -o $@
+
+BOOTINFO_TEST_BIN := $(BUILD)/bootinfo-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(BOOTINFO_TEST_BIN): tests/bootinfo_tests.c src/bootinfo.c include/haeun/bootinfo.h include/haeun/vm.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/bootinfo_tests.c src/bootinfo.c -o $@
+
+HFW_TEST_BIN := $(BUILD)/hfw-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(HFW_TEST_BIN): tests/hfw_tests.c src/hfw.c include/haeun/hfw.h include/haeun/vm.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/hfw_tests.c src/hfw.c -o $@
+
+DEVICE_TEST_BIN := $(BUILD)/device-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(DEVICE_TEST_BIN): tests/device_tests.c $(VM_CORE) include/haeun/vm.h include/haeun/board_mmio.h include/haeun/trap.h include/haeun/mmu.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/device_tests.c $(VM_CORE) -o $@
+
+ISA4_TEST_BIN := $(BUILD)/isa4-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(ISA4_TEST_BIN): tests/isa4_tests.c $(VM_CORE) include/haeun/vm.h include/haeun/board_mmio.h include/haeun/trap.h include/haeun/mmu.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/isa4_tests.c $(VM_CORE) -o $@
+
+MMU_TEST_BIN := $(BUILD)/mmu-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(MMU_TEST_BIN): tests/mmu_tests.c $(VM_CORE) include/haeun/vm.h include/haeun/mmu.h include/haeun/board_mmio.h include/haeun/trap.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/mmu_tests.c $(VM_CORE) -o $@
+
+PT_TEST_BIN := $(BUILD)/pt-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(PT_TEST_BIN): tests/pt_tests.c $(VM_CORE) include/haeun/pt.h include/haeun/mmu.h include/haeun/vm.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/pt_tests.c $(VM_CORE) -o $@
+
+KERNEL_PAGE_TEST_BIN := $(BUILD)/kernel-page-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(KERNEL_PAGE_TEST_BIN): tests/kernel_page_tests.c $(VM_CORE) include/haeun/pt.h include/haeun/mmu.h include/haeun/vm.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/kernel_page_tests.c $(VM_CORE) -o $@
+
+TLB_TEST_BIN := $(BUILD)/tlb-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(TLB_TEST_BIN): tests/tlb_tests.c $(VM_CORE) include/haeun/tlb.h include/haeun/mmu.h include/haeun/vm.h | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/tlb_tests.c $(VM_CORE) -o $@
+
+CPU_MODULE_TEST_BIN := $(BUILD)/cpu-module-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(CPU_MODULE_TEST_BIN): tests/cpu_module_tests.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/cpu_module_tests.c $(VM_CORE) -o $@
+
+OPCODE_MATRIX_TEST_BIN := $(BUILD)/opcode-matrix-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(OPCODE_MATRIX_TEST_BIN): tests/opcode_matrix_tests.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/opcode_matrix_tests.c $(VM_CORE) -o $@
+
+BOARD_EXTRA_TEST_BIN := $(BUILD)/board-extra-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(BOARD_EXTRA_TEST_BIN): tests/board_extra_tests.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/board_extra_tests.c $(VM_CORE) -o $@
+
+FB_VIEW_TEST_BIN := $(BUILD)/fb-view-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(FB_VIEW_TEST_BIN): tests/fb_view_tests.c src/fb_view.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/fb_view_tests.c src/fb_view.c $(VM_CORE) -o $@
+
+isa-opcodes:
+	$(PYTHON) tools/gen_isa_opcodes.py
+
+isa-opcodes-check:
+	$(PYTHON) tools/gen_isa_opcodes.py --check
+
+toolchain-test: $(VM_BIN) isa-opcodes-check
+	$(PYTHON) tests/toolchain_tests.py $(VM_BIN)
+
+test: $(VM_TEST_BIN) $(HXF_TEST_BIN) $(BOOTINFO_TEST_BIN) $(HFW_TEST_BIN) $(DEVICE_TEST_BIN) $(ISA4_TEST_BIN) $(MMU_TEST_BIN) $(PT_TEST_BIN) $(KERNEL_PAGE_TEST_BIN) $(TLB_TEST_BIN) $(CPU_MODULE_TEST_BIN) $(OPCODE_MATRIX_TEST_BIN) $(BOARD_EXTRA_TEST_BIN) $(FB_VIEW_TEST_BIN) $(HFS_TEST_BIN) $(PROC_HFS_TEST_BIN) $(PROC_ECALL_IO_TEST_BIN) $(GFX_TEST_BIN) $(GFX_WM_TEST_BIN) $(GFX_UI_TEST_BIN) $(GFX_DESK_TEST_BIN) $(GFX_CHROME_TEST_BIN) $(GFX_ECALL_TEST_BIN) $(NET_TEST_BIN) $(NET_ICMP_TEST_BIN) $(NET_UDP_TEST_BIN) $(NET_TCP_TEST_BIN) $(NET_DNS_TEST_BIN) $(NET_SOCK_TEST_BIN) $(NET_SOCK_ECALL_TEST_BIN) $(SEC_TEST_BIN) $(SEC_DISPATCH_TEST_BIN) $(SEC_ECALL_TEST_BIN) $(SEC_BOOT_TEST_BIN) $(M7_TEST_BIN) $(M8_PCB_PROBE_BIN) $(M9_NET_PROBE_BIN) $(M13_NET_BE_TEST_BIN) $(M14_APP_TEST_BIN) $(M15_ISO_TEST_BIN) $(M16_REL_TEST_BIN) $(M17_FAULT_TEST_BIN) $(M20_UNIT_TEST_BIN) $(M20_RES_TEST_BIN) $(M20_INPUT_TEST_BIN) $(M20_IPC_TEST_BIN) $(M20_TEXT_TEST_BIN) $(M20_WIN_TEST_BIN) $(M20_LAUNCH_TEST_BIN) $(M20_SM_TEST_BIN) $(M20_FILE_TEST_BIN) $(M20_INTEG_TEST_BIN) $(MKFS_BIN) $(FSCK_BIN) $(VM_BIN) toolchain-test
+	./$(VM_TEST_BIN)
+	./$(HXF_TEST_BIN)
+	./$(BOOTINFO_TEST_BIN)
+	./$(HFW_TEST_BIN)
+	./$(DEVICE_TEST_BIN)
+	./$(ISA4_TEST_BIN)
+	./$(MMU_TEST_BIN)
+	./$(PT_TEST_BIN)
+	./$(KERNEL_PAGE_TEST_BIN)
+	./$(TLB_TEST_BIN)
+	./$(CPU_MODULE_TEST_BIN)
+	./$(OPCODE_MATRIX_TEST_BIN)
+	./$(BOARD_EXTRA_TEST_BIN)
+	./$(FB_VIEW_TEST_BIN)
+	./$(HFS_TEST_BIN)
+	./$(PROC_HFS_TEST_BIN)
+	./$(PROC_ECALL_IO_TEST_BIN)
+	./$(GFX_TEST_BIN)
+	./$(GFX_WM_TEST_BIN)
+	./$(GFX_UI_TEST_BIN)
+	./$(GFX_DESK_TEST_BIN)
+	./$(GFX_CHROME_TEST_BIN)
+	./$(GFX_ECALL_TEST_BIN)
+	./$(NET_TEST_BIN)
+	./$(NET_ICMP_TEST_BIN)
+	./$(NET_UDP_TEST_BIN)
+	./$(NET_TCP_TEST_BIN)
+	./$(NET_DNS_TEST_BIN)
+	./$(NET_SOCK_TEST_BIN)
+	./$(NET_SOCK_ECALL_TEST_BIN)
+	./$(SEC_TEST_BIN)
+	./$(SEC_DISPATCH_TEST_BIN)
+	./$(SEC_ECALL_TEST_BIN)
+	./$(SEC_BOOT_TEST_BIN)
+	./$(M7_TEST_BIN)
+	$(PYTHON) tests/m7_guest_gui_tests.py $(VM_BIN)
+	$(PYTHON) tests/m8_process_gui_tests.py $(VM_BIN)
+	$(PYTHON) tests/m9_process_net_tests.py $(VM_BIN)
+	./$(M13_NET_BE_TEST_BIN)
+	$(PYTHON) tests/m13_process_net_tests.py $(VM_BIN)
+	./$(M14_APP_TEST_BIN)
+	$(PYTHON) tests/m14_process_apps_tests.py $(VM_BIN)
+	./$(M15_ISO_TEST_BIN)
+	./$(M16_REL_TEST_BIN)
+	./$(M17_FAULT_TEST_BIN)
+	$(PYTHON) tests/m17_process_fault_tests.py $(VM_BIN)
+	$(PYTHON) tests/m16_repeat_tests.py $(VM_BIN)
+	$(PYTHON) tests/m10_input_tests.py $(VM_BIN)
+	$(PYTHON) tests/m11_viewer_tests.py $(VM_BIN)
+	$(PYTHON) tests/m12_desktop_tests.py $(VM_BIN)
+	$(PYTHON) tests/m20_build_integrity_tests.py $(VM_BIN)
+	$(PYTHON) tests/m19_sdk_tests.py $(VM_BIN)
+	./$(M20_UNIT_TEST_BIN)
+	./$(M20_RES_TEST_BIN)
+	./$(M20_INPUT_TEST_BIN)
+	./$(M20_IPC_TEST_BIN)
+	./$(M20_TEXT_TEST_BIN)
+	./$(M20_WIN_TEST_BIN)
+	./$(M20_LAUNCH_TEST_BIN)
+	./$(M20_SM_TEST_BIN)
+	./$(M20_FILE_TEST_BIN)
+	./$(M20_INTEG_TEST_BIN)
+	$(PYTHON) tests/m20_process_tests.py $(VM_BIN)
+	$(PYTHON) tests/m20_input_process_tests.py $(VM_BIN)
+	$(PYTHON) tests/m20_ipc_process_tests.py $(VM_BIN)
+	$(PYTHON) tests/m20_text_process_tests.py $(VM_BIN)
+	$(PYTHON) tests/m20_window_process_tests.py $(VM_BIN)
+	$(PYTHON) tests/m20_launcher_process_tests.py $(VM_BIN)
+	$(PYTHON) tests/m20_file_process_tests.py $(VM_BIN)
+	$(PYTHON) tests/m20_integration_process_tests.py $(VM_BIN)
+
+
+
+
+
+
+
+
+
+
+
+
