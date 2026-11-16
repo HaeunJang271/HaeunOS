@@ -32,7 +32,7 @@ EVENT_POLL, WIN_DRAW_TEXT, IPC_*, SVC_* — `HAEUN_SYS_MAX=34`.
 
 ## Remaining limitations
 
-- FB still 64×32; Hangul unsupported
+- Hangul unsupported (ASCII 8×8 only). Default FB later raised to 320×180 (M22.1.3+); see [graphics-api.md](graphics-api.md).
 - No blocking EVENT_WAIT syscall
 - No HFS readdir
 - No separate M20 release tarball (dev tree / do not overwrite 1.0.0 claims blindly)

@@ -35,8 +35,9 @@ VM_CORE := src/vm.c src/board_mmio.c src/board_extra.c src/board_net.c src/trap.
 	src/sec_core.c src/sec_dispatch.c src/sec_ecall.c
 HFS_SRCS := src/hfs_io.c src/hfs_mkfs.c src/hfs_ops.c src/hfs_fsck.c src/proc_hfs.c src/proc_hfs_fs.c
 GFX_SRCS := src/gfx_fb.c src/gfx_pixel.c src/gfx_font.c src/gfx_wm.c \
-	src/gfx_wm_state.c src/gfx_comp.c src/gfx_ui.c src/gfx_desk.c \
-	src/gfx_ecall.c src/gfx_chrome.c src/guest_pcb.c src/evt.c
+	src/gfx_wm_fill.c src/gfx_wm_state.c src/gfx_comp.c src/gfx_ui.c \
+	src/gfx_desk.c src/gfx_ecall.c src/gfx_chrome.c src/gfx_chrome_ptr.c \
+	src/guest_pcb.c src/evt.c
 NET_SRCS := src/net_eth.c src/net_arp.c src/net_ipv4.c src/net_udp.c src/net_tcp.c src/net_dns.c src/net_sock.c src/net_drv.c
 NET_SOCK_ECALL_SRC := src/net_sock_ecall.c
 ifeq ($(OS),Windows_NT)
@@ -51,11 +52,12 @@ APP_SRCS := src/app_env.c src/app_env_query.c src/app_ecall.c
 SM_SRCS := src/svc_mgr.c src/svc_mgr_life.c src/svc_mgr_ecall.c
 M20_SRCS := src/ipc.c src/svc.c src/m20_ecall.c $(SM_SRCS)
 M7_SRCS := src/fb_dump.c src/ecall_mux.c src/vm_gui_host.c \
-	src/vm_net_host.c src/vm_input_host.c src/fb_view.c $(GFX_SRCS) \
+	src/vm_net_host.c src/vm_input_host.c src/vm_input_m22_scripts.c \
+	src/fb_view.c $(GFX_SRCS) \
 	src/proc_ecall_io.c $(HFS_SRCS) $(NET_SOCK_ECALL_SRC) $(NET_SRCS) \
 	$(NET_BACKEND_SRC) $(APP_SRCS) $(M20_SRCS)
 ifeq ($(OS),Windows_NT)
-VIEWER_SRC := src/vm_viewer_win32.c
+VIEWER_SRC := src/vm_viewer_win32.c src/vm_viewer_blit.c
 VIEWER_LIBS := -luser32 -lgdi32
 else
 VIEWER_SRC := src/vm_viewer_stub.c
@@ -170,6 +172,42 @@ $(GFX_TEST_BIN): tests/gfx_tests.c $(GFX_SRCS) $(VM_CORE) include/haeun/gfx.h in
 GFX_WM_TEST_BIN := $(BUILD)/gfx-wm-tests$(if $(filter Windows_NT,$(OS)),.exe,)
 $(GFX_WM_TEST_BIN): tests/gfx_wm_tests.c $(GFX_SRCS) $(VM_CORE) include/haeun/gfx.h include/haeun/gfx_wm.h | $(BUILD)
 	$(CC) $(CPPFLAGS) $(CFLAGS) tests/gfx_wm_tests.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+M23_3_STATE_TEST_BIN := $(BUILD)/m23-3-window-state-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M23_3_STATE_TEST_BIN): tests/m23_3_window_state_tests.c $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m23_3_window_state_tests.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+M23_4_RES_TEST_BIN := $(BUILD)/m23-4-resource-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M23_4_RES_TEST_BIN): tests/m23_4_resource_tests.c $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m23_4_resource_tests.c $(GFX_SRCS) $(VM_CORE) -o $@
+
+M24_2_EXIT_TEST_BIN := $(BUILD)/m24-2-exit-idempotency-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M24_2_EXIT_TEST_BIN): tests/m24_2_exit_idempotency_tests.c src/ecall_mux.c $(APP_SRCS) $(GFX_SRCS) $(NET_SRCS) $(HFS_SRCS) $(NET_SOCK_ECALL_SRC) src/proc_ecall_io.c $(M20_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m24_2_exit_idempotency_tests.c src/ecall_mux.c $(APP_SRCS) $(GFX_SRCS) $(NET_SRCS) $(HFS_SRCS) $(NET_SOCK_ECALL_SRC) src/proc_ecall_io.c $(M20_SRCS) $(VM_CORE) -o $@
+
+M24_2_CAP_TEST_BIN := $(BUILD)/m24-2-process-capacity-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M24_2_CAP_TEST_BIN): tests/m24_2_process_capacity_tests.c $(APP_SRCS) $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m24_2_process_capacity_tests.c $(APP_SRCS) $(GFX_SRCS) $(VM_CORE) -o $@
+
+M24_2_FAULT_RES_TEST_BIN := $(BUILD)/m24-2-fault-resource-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M24_2_FAULT_RES_TEST_BIN): tests/m24_2_fault_resource_tests.c src/ecall_mux.c $(APP_SRCS) $(GFX_SRCS) $(NET_SRCS) $(HFS_SRCS) $(NET_SOCK_ECALL_SRC) src/proc_ecall_io.c $(M20_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m24_2_fault_resource_tests.c src/ecall_mux.c $(APP_SRCS) $(GFX_SRCS) $(NET_SRCS) $(HFS_SRCS) $(NET_SOCK_ECALL_SRC) src/proc_ecall_io.c $(M20_SRCS) $(VM_CORE) -o $@
+
+M24_4_RES_TEST_BIN := $(BUILD)/m24-4-resource-reclamation-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M24_4_RES_TEST_BIN): tests/m24_4_resource_reclamation_tests.c src/ecall_mux.c $(APP_SRCS) $(GFX_SRCS) $(NET_SRCS) $(HFS_SRCS) $(NET_SOCK_ECALL_SRC) src/proc_ecall_io.c $(M20_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m24_4_resource_reclamation_tests.c src/ecall_mux.c $(APP_SRCS) $(GFX_SRCS) $(NET_SRCS) $(HFS_SRCS) $(NET_SOCK_ECALL_SRC) src/proc_ecall_io.c $(M20_SRCS) $(VM_CORE) -o $@
+
+M25_2_OWN_TEST_BIN := $(BUILD)/m25-2-as-ownership-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M25_2_OWN_TEST_BIN): tests/m25_2_as_ownership_tests.c $(APP_SRCS) $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m25_2_as_ownership_tests.c $(APP_SRCS) $(GFX_SRCS) $(VM_CORE) -o $@
+
+M25_2_SCRUB_TEST_BIN := $(BUILD)/m25-2-memory-scrub-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M25_2_SCRUB_TEST_BIN): tests/m25_2_memory_scrub_tests.c $(APP_SRCS) $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m25_2_memory_scrub_tests.c $(APP_SRCS) $(GFX_SRCS) $(VM_CORE) -o $@
+
+M25_6_HEAP_HOST_BIN := $(BUILD)/m25-6-heap-host-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(M25_6_HEAP_HOST_BIN): tests/m25_6_heap_host_tests.c $(APP_SRCS) $(GFX_SRCS) $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/m25_6_heap_host_tests.c $(APP_SRCS) $(GFX_SRCS) $(VM_CORE) -o $@
 
 GFX_UI_TEST_BIN := $(BUILD)/gfx-ui-tests$(if $(filter Windows_NT,$(OS)),.exe,)
 $(GFX_UI_TEST_BIN): tests/gfx_ui_tests.c $(GFX_SRCS) $(VM_CORE) include/haeun/gfx.h include/haeun/gfx_wm.h include/haeun/gfx_ui.h | $(BUILD)
@@ -325,7 +363,7 @@ isa-opcodes-check:
 toolchain-test: $(VM_BIN) isa-opcodes-check
 	$(PYTHON) tests/toolchain_tests.py $(VM_BIN)
 
-test: $(VM_TEST_BIN) $(HXF_TEST_BIN) $(BOOTINFO_TEST_BIN) $(HFW_TEST_BIN) $(DEVICE_TEST_BIN) $(ISA4_TEST_BIN) $(MMU_TEST_BIN) $(PT_TEST_BIN) $(KERNEL_PAGE_TEST_BIN) $(TLB_TEST_BIN) $(CPU_MODULE_TEST_BIN) $(OPCODE_MATRIX_TEST_BIN) $(BOARD_EXTRA_TEST_BIN) $(FB_VIEW_TEST_BIN) $(HFS_TEST_BIN) $(PROC_HFS_TEST_BIN) $(PROC_ECALL_IO_TEST_BIN) $(GFX_TEST_BIN) $(GFX_WM_TEST_BIN) $(GFX_UI_TEST_BIN) $(GFX_DESK_TEST_BIN) $(GFX_CHROME_TEST_BIN) $(GFX_ECALL_TEST_BIN) $(NET_TEST_BIN) $(NET_ICMP_TEST_BIN) $(NET_UDP_TEST_BIN) $(NET_TCP_TEST_BIN) $(NET_DNS_TEST_BIN) $(NET_SOCK_TEST_BIN) $(NET_SOCK_ECALL_TEST_BIN) $(SEC_TEST_BIN) $(SEC_DISPATCH_TEST_BIN) $(SEC_ECALL_TEST_BIN) $(SEC_BOOT_TEST_BIN) $(M7_TEST_BIN) $(M8_PCB_PROBE_BIN) $(M9_NET_PROBE_BIN) $(M13_NET_BE_TEST_BIN) $(M14_APP_TEST_BIN) $(M15_ISO_TEST_BIN) $(M16_REL_TEST_BIN) $(M17_FAULT_TEST_BIN) $(M20_UNIT_TEST_BIN) $(M20_RES_TEST_BIN) $(M20_INPUT_TEST_BIN) $(M20_IPC_TEST_BIN) $(M20_TEXT_TEST_BIN) $(M20_WIN_TEST_BIN) $(M20_LAUNCH_TEST_BIN) $(M20_SM_TEST_BIN) $(M20_FILE_TEST_BIN) $(M20_INTEG_TEST_BIN) $(MKFS_BIN) $(FSCK_BIN) $(VM_BIN) toolchain-test
+test: $(VM_TEST_BIN) $(HXF_TEST_BIN) $(BOOTINFO_TEST_BIN) $(HFW_TEST_BIN) $(DEVICE_TEST_BIN) $(ISA4_TEST_BIN) $(MMU_TEST_BIN) $(PT_TEST_BIN) $(KERNEL_PAGE_TEST_BIN) $(TLB_TEST_BIN) $(CPU_MODULE_TEST_BIN) $(OPCODE_MATRIX_TEST_BIN) $(BOARD_EXTRA_TEST_BIN) $(FB_VIEW_TEST_BIN) $(HFS_TEST_BIN) $(PROC_HFS_TEST_BIN) $(PROC_ECALL_IO_TEST_BIN) $(GFX_TEST_BIN) $(GFX_WM_TEST_BIN) $(M23_3_STATE_TEST_BIN) $(M23_4_RES_TEST_BIN) $(M24_2_EXIT_TEST_BIN) $(M24_2_CAP_TEST_BIN) $(M24_2_FAULT_RES_TEST_BIN) $(M24_4_RES_TEST_BIN) $(M25_2_OWN_TEST_BIN) $(M25_2_SCRUB_TEST_BIN) $(M25_6_HEAP_HOST_BIN) $(GFX_UI_TEST_BIN) $(GFX_DESK_TEST_BIN) $(GFX_CHROME_TEST_BIN) $(GFX_ECALL_TEST_BIN) $(NET_TEST_BIN) $(NET_ICMP_TEST_BIN) $(NET_UDP_TEST_BIN) $(NET_TCP_TEST_BIN) $(NET_DNS_TEST_BIN) $(NET_SOCK_TEST_BIN) $(NET_SOCK_ECALL_TEST_BIN) $(SEC_TEST_BIN) $(SEC_DISPATCH_TEST_BIN) $(SEC_ECALL_TEST_BIN) $(SEC_BOOT_TEST_BIN) $(M7_TEST_BIN) $(M8_PCB_PROBE_BIN) $(M9_NET_PROBE_BIN) $(M13_NET_BE_TEST_BIN) $(M14_APP_TEST_BIN) $(M15_ISO_TEST_BIN) $(M16_REL_TEST_BIN) $(M17_FAULT_TEST_BIN) $(M20_UNIT_TEST_BIN) $(M20_RES_TEST_BIN) $(M20_INPUT_TEST_BIN) $(M20_IPC_TEST_BIN) $(M20_TEXT_TEST_BIN) $(M20_WIN_TEST_BIN) $(M20_LAUNCH_TEST_BIN) $(M20_SM_TEST_BIN) $(M20_FILE_TEST_BIN) $(M20_INTEG_TEST_BIN) $(MKFS_BIN) $(FSCK_BIN) $(VM_BIN) toolchain-test
 	./$(VM_TEST_BIN)
 	./$(HXF_TEST_BIN)
 	./$(BOOTINFO_TEST_BIN)
@@ -345,6 +383,15 @@ test: $(VM_TEST_BIN) $(HXF_TEST_BIN) $(BOOTINFO_TEST_BIN) $(HFW_TEST_BIN) $(DEVI
 	./$(PROC_ECALL_IO_TEST_BIN)
 	./$(GFX_TEST_BIN)
 	./$(GFX_WM_TEST_BIN)
+	./$(M23_3_STATE_TEST_BIN)
+	./$(M23_4_RES_TEST_BIN)
+	./$(M24_2_EXIT_TEST_BIN)
+	./$(M24_2_CAP_TEST_BIN)
+	./$(M24_2_FAULT_RES_TEST_BIN)
+	./$(M24_4_RES_TEST_BIN)
+	./$(M25_2_OWN_TEST_BIN)
+	./$(M25_2_SCRUB_TEST_BIN)
+	./$(M25_6_HEAP_HOST_BIN)
 	./$(GFX_UI_TEST_BIN)
 	./$(GFX_DESK_TEST_BIN)
 	./$(GFX_CHROME_TEST_BIN)
@@ -396,6 +443,45 @@ test: $(VM_TEST_BIN) $(HXF_TEST_BIN) $(BOOTINFO_TEST_BIN) $(HFW_TEST_BIN) $(DEVI
 	$(PYTHON) tests/m20_launcher_process_tests.py $(VM_BIN)
 	$(PYTHON) tests/m20_file_process_tests.py $(VM_BIN)
 	$(PYTHON) tests/m20_integration_process_tests.py $(VM_BIN)
+	$(PYTHON) tests/m20_9_gui_e2e_tests.py $(VM_BIN)
+	$(PYTHON) tests/m21_persistent_desktop_tests.py $(VM_BIN)
+	$(PYTHON) tests/m21_3_persistent_runtime_tests.py $(VM_BIN)
+	$(PYTHON) tests/m22_1_desktop_shell_tests.py $(VM_BIN)
+	$(PYTHON) tests/m22_1_1_rendering_tests.py $(VM_BIN)
+	$(PYTHON) tests/m22_1_2_composition_tests.py $(VM_BIN)
+	$(PYTHON) tests/m22_3_interactive_app_tests.py $(VM_BIN)
+	$(PYTHON) tests/m22_4_rendering_tests.py $(VM_BIN)
+	$(PYTHON) tests/m23_2_focus_recovery_tests.py $(VM_BIN)
+	$(PYTHON) tests/m23_2_multi_window_tests.py $(VM_BIN)
+	$(PYTHON) tests/m23_2_close_lifecycle_tests.py $(VM_BIN)
+	$(PYTHON) tests/m23_3_window_state_tests.py $(VM_BIN)
+	$(PYTHON) tests/m23_3_input_routing_tests.py $(VM_BIN)
+	$(PYTHON) tests/m23_3_redraw_tests.py $(VM_BIN)
+	$(PYTHON) tests/m23_4_integration_tests.py $(VM_BIN)
+	$(PYTHON) tests/m23_4_stress_tests.py $(VM_BIN)
+	$(PYTHON) tests/m23_4_composition_tests.py $(VM_BIN)
+	$(PYTHON) tests/m24_2_lifecycle_contract_tests.py $(VM_BIN)
+	$(PYTHON) tests/m24_2_orphan_wait_tests.py $(VM_BIN)
+	$(PYTHON) tests/m24_2_parent_death_tests.py $(VM_BIN)
+	$(PYTHON) tests/m24_3_init_reaper_tests.py $(VM_BIN)
+	$(PYTHON) tests/m24_3_orphan_stress_tests.py $(VM_BIN)
+	$(PYTHON) tests/m24_3_reclamation_tests.py $(VM_BIN)
+	$(PYTHON) tests/m24_4_lifecycle_integration_tests.py $(VM_BIN)
+	$(PYTHON) tests/m24_4_pid_reuse_tests.py $(VM_BIN)
+	$(PYTHON) tests/m24_4_resource_reclamation_tests.py $(VM_BIN) $(M24_4_RES_TEST_BIN)
+	$(PYTHON) tests/m25_2_as_ownership_tests.py $(VM_BIN) $(M25_2_OWN_TEST_BIN)
+	$(PYTHON) tests/m25_2_memory_scrub_tests.py $(VM_BIN) $(M25_2_SCRUB_TEST_BIN)
+	$(PYTHON) tests/m25_2_fork_policy_tests.py $(VM_BIN)
+	$(PYTHON) tests/m25_3_fork_memory_snapshot_tests.py $(VM_BIN)
+	$(PYTHON) tests/m25_3_fork_isolation_tests.py $(VM_BIN)
+	$(PYTHON) tests/m25_3_fork_failure_tests.py $(VM_BIN)
+	$(PYTHON) tests/m25_4_stack_boundary_tests.py $(VM_BIN)
+	$(PYTHON) tests/m25_4_stack_overflow_tests.py $(VM_BIN)
+	$(PYTHON) tests/m25_4_fork_stack_guard_tests.py $(VM_BIN)
+	$(PYTHON) tests/m25_6_heap_mapping_tests.py $(VM_BIN) $(M25_6_HEAP_HOST_BIN)
+	$(PYTHON) tests/m25_6_allocator_tests.py $(VM_BIN)
+	$(PYTHON) tests/m25_6_heap_isolation_tests.py $(VM_BIN)
+	$(PYTHON) tests/m25_6_heap_lifecycle_tests.py $(VM_BIN)
 
 
 

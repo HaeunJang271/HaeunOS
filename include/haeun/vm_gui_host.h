@@ -16,11 +16,15 @@
 #include "haeun/svc_mgr.h"
 #include "haeun/vm.h"
 
-/** Default framebuffer geometry for --gui / gui_demo (must match guest). */
+/**
+ * Default framebuffer for --gui / desktop (must match guest shell).
+ * Placed at 2MiB: above process kernel/user (0x100000+) and above the
+ * window pool [0x18000, 0x100000). 320x180 fits readable 8x8 labels.
+ */
 enum {
-    HAEUN_GUI_FB_WIDTH = 64u,
-    HAEUN_GUI_FB_HEIGHT = 32u,
-    HAEUN_GUI_FB_BASE = 0x10000u,
+    HAEUN_GUI_FB_WIDTH = 320u,
+    HAEUN_GUI_FB_HEIGHT = 180u,
+    HAEUN_GUI_FB_BASE = 0x00200000u,
     HAEUN_APPS_HFS_BYTES = 32u * 512u
 };
 

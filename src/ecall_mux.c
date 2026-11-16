@@ -33,17 +33,37 @@ static void reap_pid(haeun_ecall_mux_ctx *ctx, uint32_t pid, uint32_t exit_code,
 
 /**
  * Logs and reaps host-owned resources for the current PCB after a user fault.
+ * When tval falls in the page below PCB.ustack_base, tags stack-overflow.
  */
 void haeun_ecall_mux_on_fault(haeun_vm *vm, void *context, uint32_t cause,
                               uint32_t tval, uint32_t epc) {
     haeun_ecall_mux_ctx *ctx = (haeun_ecall_mux_ctx *)context;
     uint32_t pid;
+    uint32_t curr;
+    uint32_t base;
+    const char *kind = "user";
     if (vm == NULL || ctx == NULL)
         return;
     pid = haeun_guest_pcb_current_pid(vm);
+    if (vm->ram != NULL && vm->ram_size >= 0xA404u) {
+        curr = (uint32_t)vm->ram[0xA400] | ((uint32_t)vm->ram[0xA401] << 8) |
+               ((uint32_t)vm->ram[0xA402] << 16) |
+               ((uint32_t)vm->ram[0xA403] << 24);
+        if (curr < 4u) {
+            uint32_t off = 0xA000u + curr * 0x100u + 40u;
+            if ((uint64_t)off + 4u <= (uint64_t)vm->ram_size) {
+                base = (uint32_t)vm->ram[off] |
+                       ((uint32_t)vm->ram[off + 1u] << 8) |
+                       ((uint32_t)vm->ram[off + 2u] << 16) |
+                       ((uint32_t)vm->ram[off + 3u] << 24);
+                if (base >= 4096u && tval >= (base - 4096u) && tval < base)
+                    kind = "stack-overflow";
+            }
+        }
+    }
     (void)fprintf(stderr,
-                  "[haeun-fault] user pid=%u cause=%u epc=0x%08x tval=0x%08x\n",
-                  pid, cause, epc, tval);
+                  "[haeun-fault] %s pid=%u cause=%u epc=0x%08x tval=0x%08x\n",
+                  kind, pid, cause, epc, tval);
     reap_pid(ctx, pid, cause, 1);
 }
 
@@ -68,8 +88,9 @@ bool haeun_ecall_mux_io(haeun_vm *vm, void *context) {
             return false;
         return haeun_sock_ecall_io(vm, ctx->sock_ctx);
     }
-    if (number >= (uint32_t)HAEUN_SYS_WIN_CREATE &&
-        number <= (uint32_t)HAEUN_SYS_GFX_COMPOSE) {
+    if ((number >= (uint32_t)HAEUN_SYS_WIN_CREATE &&
+         number <= (uint32_t)HAEUN_SYS_GFX_COMPOSE) ||
+        number == (uint32_t)HAEUN_SYS_WIN_FILL_RECT) {
         if (ctx->gfx_ctx == NULL)
             return false;
         return haeun_gfx_ecall_io(vm, ctx->gfx_ctx);

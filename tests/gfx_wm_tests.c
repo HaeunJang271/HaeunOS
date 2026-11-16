@@ -2,6 +2,7 @@
 #include "haeun/gfx_wm.h"
 #include "haeun/vm.h"
 
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -132,7 +133,64 @@ static int test_hit_focus(void) {
     CHECK(haeun_gfx_wm_set_focus(&wm, a) == HAEUN_GFX_OK);
     CHECK(wm.focus_id == a);
     CHECK(haeun_gfx_wm_destroy(&wm, a) == HAEUN_GFX_OK);
+    /* Destroy recovers focus to the remaining eligible window. */
+    CHECK(wm.focus_id == b);
+    CHECK(haeun_gfx_wm_destroy(&wm, b) == HAEUN_GFX_OK);
     CHECK(wm.focus_id == -1);
+    return 0;
+}
+
+/** Minimize/destroy retarget focus; never leave stale or minimized focus. */
+static int test_focus_recover(void) {
+    uint8_t ram[0x8000];
+    haeun_vm vm;
+    haeun_gfx_wm wm;
+    int a = -1, b = -1, c = -1;
+    enum { A = 0x1000u, B = 0x2000u, C = 0x3000u };
+    memset(ram, 0, sizeof(ram));
+    CHECK(haeun_vm_init(&vm, ram, sizeof(ram), 0u) == HAEUN_VM_OK);
+    CHECK(haeun_gfx_wm_init(&wm, &vm) == HAEUN_GFX_OK);
+    CHECK(haeun_gfx_wm_create(&wm, 0, 0, 8u, 8u, A, &a) == HAEUN_GFX_OK);
+    CHECK(haeun_gfx_wm_create(&wm, 4, 4, 8u, 8u, B, &b) == HAEUN_GFX_OK);
+    CHECK(haeun_gfx_wm_create(&wm, 8, 8, 8u, 8u, C, &c) == HAEUN_GFX_OK);
+    CHECK(haeun_gfx_wm_raise(&wm, b) == HAEUN_GFX_OK);
+    CHECK(haeun_gfx_wm_set_focus(&wm, b) == HAEUN_GFX_OK);
+    CHECK(haeun_gfx_wm_minimize(&wm, b) == HAEUN_GFX_OK);
+    CHECK(wm.focus_id != b);
+    CHECK(wm.focus_id == haeun_gfx_wm_top_eligible(&wm));
+    CHECK(wm.focus_id == c || wm.focus_id == a);
+    CHECK(!wm.windows[wm.focus_id].minimized);
+    CHECK(wm.windows[wm.focus_id].visible);
+    CHECK(haeun_gfx_wm_set_focus(&wm, c) == HAEUN_GFX_OK);
+    CHECK(haeun_gfx_wm_destroy(&wm, c) == HAEUN_GFX_OK);
+    CHECK(wm.focus_id != c);
+    CHECK(wm.focus_id == a);
+    CHECK(haeun_gfx_wm_minimize(&wm, a) == HAEUN_GFX_OK);
+    CHECK(wm.focus_id == -1);
+    CHECK(haeun_gfx_wm_top_eligible(&wm) == -1);
+    return 0;
+}
+
+/** fill_rect paints a sub-rectangle without touching outside pixels. */
+static int test_fill_rect(void) {
+    uint8_t ram[0x8000];
+    haeun_vm vm;
+    haeun_gfx_wm wm;
+    int a = -1;
+    enum { BASE = 0x1000u };
+    size_t ink;
+    size_t corner;
+    memset(ram, 0, sizeof(ram));
+    CHECK(haeun_vm_init(&vm, ram, sizeof(ram), 0u) == HAEUN_VM_OK);
+    CHECK(haeun_gfx_wm_init(&wm, &vm) == HAEUN_GFX_OK);
+    CHECK(haeun_gfx_wm_create(&wm, 0, 0, 8u, 8u, BASE, &a) == HAEUN_GFX_OK);
+    CHECK(haeun_gfx_wm_fill(&wm, a, 0x00000000u) == HAEUN_GFX_OK);
+    CHECK(haeun_gfx_wm_fill_rect(&wm, a, 2u, 2u, 3u, 2u, 0x0000FF00u) ==
+          HAEUN_GFX_OK);
+    ink = (size_t)BASE + ((size_t)2u * 8u + 2u) * 4u;
+    corner = (size_t)BASE;
+    CHECK(ram[ink + 1u] == 0xffu); /* G channel */
+    CHECK(ram[corner] == 0u);
     return 0;
 }
 
@@ -141,6 +199,8 @@ int main(void) {
     if (test_zorder_compose() != 0) return 1;
     if (test_hide_and_destroy() != 0) return 1;
     if (test_hit_focus() != 0) return 1;
+    if (test_focus_recover() != 0) return 1;
+    if (test_fill_rect() != 0) return 1;
     puts("all gfx wm tests passed");
     return 0;
 }

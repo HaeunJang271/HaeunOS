@@ -1,4 +1,4 @@
-# M20.5/M20.6 GUI launcher: apps list + spawn + service start/stop smoke.
+# M20.9 GUI launcher: sequential calc/edit/filemgr + NOSPC + optional service.
 .isa 4
 .global user_init
 
@@ -35,33 +35,90 @@ bgc:
     addi r2, r0, 3
     cmplt r3, r1, r2
     bne r3, r0, fail
+    addi r14, r1, 0
 
-    # calc
+    # NOSPC: fill both AS slots then third spawn must fail
     addi r1, r0, 26
     addi r2, r0, 0
     ecall
-    addi r9, r1, 0
-    cmplt r3, r9, r0
-    bne r3, r0, fail
-    addi r1, r0, 39
-    addi r2, r0, 1
-    ecall
     cmplt r3, r1, r0
     bne r3, r0, fail
-    bne r2, r9, fail
-    jal r15, yield_n
-    addi r1, r0, 7
-    ecall
-
-    # edit then wait (single app slot path)
+    addi r11, r1, 0
     addi r1, r0, 26
     addi r2, r0, 1
     ecall
     cmplt r3, r1, r0
     bne r3, r0, fail
+    addi r12, r1, 0
+    addi r1, r0, 26
+    addi r2, r0, 2
+    ecall
+    cmplt r3, r1, r0
+    beq r3, r0, fail
+    addi r1, r0, 40
+    addi r2, r0, 1
+    addi r3, r11, 0
+    ecall
+    addi r1, r0, 40
+    addi r2, r0, 1
+    addi r3, r12, 0
+    ecall
     jal r15, yield_n
     addi r1, r0, 7
     ecall
+    jal r15, yield_n
+    addi r1, r0, 7
+    ecall
+
+    # Sequential: spawn → yield (create win) → CLOSE → yield → WAIT
+    addi r1, r0, 26
+    addi r2, r0, 0
+    ecall
+    cmplt r3, r1, r0
+    bne r3, r0, fail
+    sw r1, -20(r13)
+    jal r15, yield_n
+    addi r1, r0, 40
+    addi r2, r0, 1
+    lw r3, -20(r13)
+    ecall
+    jal r15, yield_n
+    addi r1, r0, 7
+    ecall
+
+    addi r1, r0, 26
+    addi r2, r0, 1
+    ecall
+    cmplt r3, r1, r0
+    bne r3, r0, fail
+    sw r1, -20(r13)
+    jal r15, yield_n
+    addi r1, r0, 40
+    addi r2, r0, 1
+    lw r3, -20(r13)
+    ecall
+    jal r15, yield_n
+    addi r1, r0, 7
+    ecall
+
+    addi r2, r0, 5
+    cmplt r3, r14, r2
+    bne r3, r0, skip_fm
+    addi r1, r0, 26
+    addi r2, r14, -1
+    ecall
+    cmplt r3, r1, r0
+    bne r3, r0, fail
+    sw r1, -20(r13)
+    jal r15, yield_n
+    addi r1, r0, 40
+    addi r2, r0, 1
+    lw r3, -20(r13)
+    ecall
+    jal r15, yield_n
+    addi r1, r0, 7
+    ecall
+skip_fm:
 
     # bad spawn index
     addi r1, r0, 26
@@ -70,7 +127,7 @@ bgc:
     cmplt r3, r1, r0
     beq r3, r0, fail
 
-    # service idle (id 0) if registered
+    # optional service idle (id 0)
     addi r1, r0, 41
     ecall
     beq r1, r0, no_svc
@@ -86,19 +143,6 @@ bgc:
     bne r3, r0, fail
     addi r4, r0, 2
     bne r2, r4, fail
-    addi r1, r0, 28
-    addi r2, r8, 0
-    addi r3, r0, 40
-    addi r4, r0, 2
-    jal r5, fg3
-    .word 0x00FFE080
-fg3:
-    lw r5, 0(r5)
-    addi r6, r0, 0
-    jal r7, t_svc
-    .word 0x00435653
-t_svc:
-    ecall
     addi r1, r0, 44
     addi r2, r0, 0
     ecall
@@ -188,14 +232,14 @@ t_ok:
     jalr r0, r12, 0
 
 yield_n:
-    addi r12, r15, 0
-    addi r11, r0, 64
+    addi r10, r15, 0
+    addi r9, r0, 128
 yn:
     addi r1, r0, 10
     ecall
-    addi r11, r11, -1
-    bne r11, r0, yn
-    jalr r0, r12, 0
+    addi r9, r9, -1
+    bne r9, r0, yn
+    jalr r0, r10, 0
 
 fail:
     addi r1, r0, 0

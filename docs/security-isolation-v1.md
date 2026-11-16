@@ -57,8 +57,10 @@ Manual-only (not automated): physical keyboard focus UX with live `--viewer`.
 
 ## Remaining intentional limits
 
-AS slots ≤3, app ≤4KiB, no HFS EXEC, no package/dynamic link, FB 64×32,
-no WIN_DRAW_TEXT/POLL_EVENT, shared KBD FIFO, APP_SPAWN loads images.
+AS slots ≤3, app ≤4KiB, no HFS EXEC, no package/dynamic link,
+default FB **320×180**, `WIN_DRAW_TEXT` / `EVENT_POLL` available to process apps,
+shared KBD FIFO retained for legacy demos, APP_SPAWN loads images.
+(See [limitations.md](limitations.md), [graphics-api.md](graphics-api.md).)
 
 ## Verdict
 

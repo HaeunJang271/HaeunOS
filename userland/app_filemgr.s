@@ -6,12 +6,13 @@ user_init:
     jal r15, app_getpid
     sw r1, -4(r13)
 
-    addi r2, r0, 2
-    addi r3, r0, 2
-    addi r4, r0, 56
-    addi r5, r0, 26
+    # File manager on 320x180.
+    addi r2, r0, 70
+    addi r3, r0, 36
+    addi r4, r0, 180
+    addi r5, r0, 100
     jal r6, wbase
-    .word 0x0001E000
+    .word 0x00090000
 wbase:
     lw r6, 0(r6)
     jal r15, app_win_create
@@ -142,6 +143,29 @@ p_note6:
     jal r15, app_close
 
     jal r15, app_compose
+fm_loop:
+    jal r15, app_event_poll
+    beq r1, r0, fm_idle
+    addi r10, r0, 8
+    beq r1, r10, fm_bye
+    addi r10, r0, 1
+    bne r1, r10, fm_loop
+    addi r10, r0, 0x01
+    beq r3, r10, fm_bye
+    jal r0, fm_loop
+fm_idle:
+    addi r2, r8, 0
+    jal r15, app_win_query
+    bne r1, r0, fm_bye
+    jal r15, app_yield
+    jal r0, fm_loop
+fm_bye:
+    addi r2, r8, 0
+    jal r15, app_win_query
+    bne r1, r0, fm_exit
+    addi r2, r8, 0
+    jal r15, app_win_destroy
+fm_exit:
     addi r2, r0, 1
     jal r15, app_exit
 

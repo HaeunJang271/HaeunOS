@@ -16,7 +16,9 @@
 
 /** ABI map: SYS_MAX, no collision between IPC name svc and Service Manager. */
 int m20i_test_abi_map(void) {
-    CHECK((int)HAEUN_SYS_MAX == 50);
+    CHECK((int)HAEUN_SYS_MAX == 52);
+    CHECK((int)HAEUN_SYS_WIN_FILL_RECT == 51);
+    CHECK((int)HAEUN_SYS_TRYWAIT == 52);
     CHECK((int)HAEUN_SYS_SVC_REGISTER == 33);
     CHECK((int)HAEUN_SYS_SVC_LOOKUP == 34);
     CHECK((int)HAEUN_SYS_SERVICE_COUNT == 41);

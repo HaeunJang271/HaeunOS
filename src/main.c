@@ -10,6 +10,7 @@
 #include "haeun/vm_net_host.h"
 #include "haeun/vm_viewer.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,14 +18,16 @@
 #define INITIAL_RAM_SIZE (256u * 1024u * 1024u)
 #define INITIAL_STACK_BASE UINT32_C(0x0ff00000)
 #define BOOTINFO_ADDRESS UINT32_C(0x0feff000)
+/* Non-persist smoke/regression budget. Persist defaults to unbounded. */
 #define INSTRUCTION_BUDGET UINT64_C(10000000)
 
 static const char *usage_text(void)
 {
 	return "usage: haeun-vm <hxf>|--firmware <hfw> [--disk IMG] "
-	       "[--root-hash HEX] [--gui] [--desktop] [--apps] "
-	       "[--app HXF]... [--net|--net-real] [--input] [--viewer] "
-	       "[--user] [--fb-dump PPM]\n";
+	       "[--root-hash HEX] [--gui] [--desktop] [--apps] [--persist] "
+	       "[--persist-stress] [--max-steps N] "
+	       "[--app HXF]... [--net|--net-real] [--input] "
+	       "[--input-script NAME] [--viewer] [--user] [--fb-dump PPM]\n";
 }
 
 static void uart_stdout(void *context, uint8_t byte)
@@ -151,14 +154,17 @@ int main(int argc, char **argv)
 	bool firmware_mode = false, gui_mode = false, net_mode = false;
 	bool net_real = false;
 	bool input_mode = false, viewer_mode = false, user_mode = false;
-	bool desktop_mode = false, apps_mode = false;
-	bool builtins = false;
+	bool desktop_mode = false, apps_mode = false, persist_mode = false;
+	bool persist_stress = false, builtins = false, has_max_steps = false;
 	const char *firmware_path = NULL, *hxf_path = NULL, *disk_path = NULL;
 	const char *root_hash_hex = NULL, *fb_dump_path = NULL;
+	const char *input_script = NULL;
 	const char *extra_apps[HAEUN_APP_MAX];
 	int extra_app_count = 0;
 	uint8_t root_hash[HAEUN_SHA256_DIGEST_LEN];
 	uint64_t steps;
+	uint64_t run_budget = INSTRUCTION_BUDGET;
+	uint64_t max_steps_arg = 0u;
 	int i, rc = 2;
 
 	memset(&gui_host, 0, sizeof(gui_host));
@@ -183,6 +189,27 @@ int main(int argc, char **argv)
 			builtins = true;
 			desktop_mode = true;
 			gui_mode = true;
+		} else if (strcmp(argv[i], "--persist") == 0) {
+			persist_mode = true;
+			desktop_mode = true;
+			gui_mode = true;
+		} else if (strcmp(argv[i], "--persist-stress") == 0) {
+			persist_stress = true;
+			persist_mode = true;
+			desktop_mode = true;
+			gui_mode = true;
+		} else if (strcmp(argv[i], "--max-steps") == 0 && i + 1 < argc) {
+			const char *arg = argv[++i];
+			char *end = NULL;
+			errno = 0;
+			max_steps_arg = strtoull(arg, &end, 10);
+			if (errno != 0 || end == arg || *end != '\0' ||
+			    max_steps_arg == 0u) {
+				(void)fprintf(stderr,
+					      "invalid --max-steps value\n");
+				return 2;
+			}
+			has_max_steps = true;
 		} else if (strcmp(argv[i], "--app") == 0 && i + 1 < argc) {
 			if (extra_app_count >= HAEUN_APP_MAX) {
 				(void)fprintf(stderr,
@@ -201,7 +228,11 @@ int main(int argc, char **argv)
 			net_real = true;
 		} else if (strcmp(argv[i], "--input") == 0)
 			input_mode = true;
-		else if (strcmp(argv[i], "--viewer") == 0)
+		else if (strcmp(argv[i], "--input-script") == 0 &&
+			 i + 1 < argc) {
+			input_script = argv[++i];
+			input_mode = true;
+		} else if (strcmp(argv[i], "--viewer") == 0)
 			viewer_mode = true;
 		else if (strcmp(argv[i], "--user") == 0)
 			user_mode = true;
@@ -355,11 +386,41 @@ int main(int argc, char **argv)
 			if (desktop_mode)
 				input_host.chrome = &gui_host.chrome;
 		}
-		if (apps_mode)
+		if (input_script != NULL) {
+			if (haeun_vm_input_host_load_m22_3_script(
+				    &input_host, input_script) != 0) {
+				(void)fprintf(stderr,
+					      "unknown --input-script '%s'\n",
+					      input_script);
+				goto out;
+			}
+		} else if (persist_stress)
+			haeun_vm_input_host_load_m21_stress_script(&input_host);
+		else if (persist_mode)
+			haeun_vm_input_host_load_m21_script(&input_host);
+		else if (apps_mode)
 			haeun_vm_input_host_load_m20_script(&input_host);
 		else
 			haeun_vm_input_host_load_demo_script(&input_host);
 	}
+	/*
+	 * Budget policy (M21.3):
+	 * - non-persist: fixed INSTRUCTION_BUDGET (smoke / regression)
+	 * - persist: unbounded cumulative steps; viewer still uses VIEW_SLICE
+	 *   quanta so the Win32 pump stays responsive
+	 * - --max-steps N: explicit ceiling for any mode (tests / safety)
+	 * STEP_LIMIT remains a real terminal result when a ceiling is hit;
+	 * persist simply does not install the 10M ceiling by default.
+	 */
+	if (has_max_steps)
+		run_budget = max_steps_arg;
+	else if (persist_mode)
+		run_budget = UINT64_MAX;
+	else
+		run_budget = INSTRUCTION_BUDGET;
+	if (persist_mode)
+		(void)printf("persist: run_budget=%llu (viewer quantum=slice)\n",
+			     (unsigned long long)run_budget);
 	if (viewer_mode) {
 		haeun_viewer_result vr = haeun_vm_viewer_attach(
 			&viewer, &vm, gui_mode ? &gui_host.wm : NULL, 1);
@@ -379,16 +440,15 @@ int main(int argc, char **argv)
 	if (user_mode)
 		vm.privilege = HAEUN_PRIV_USER;
 	if (viewer_mode)
-		result = haeun_vm_viewer_run(&viewer, &vm, INSTRUCTION_BUDGET,
-					     &steps);
+		result = haeun_vm_viewer_run(&viewer, &vm, run_budget, &steps);
 	else if (net_mode)
-		result = haeun_vm_net_host_run(&net_host, &vm,
-					       INSTRUCTION_BUDGET, &steps);
+		result = haeun_vm_net_host_run(&net_host, &vm, run_budget,
+					       &steps);
 	else if (input_mode)
-		result = haeun_vm_input_host_run(&input_host, &vm,
-						 INSTRUCTION_BUDGET, &steps);
+		result = haeun_vm_input_host_run(&input_host, &vm, run_budget,
+						 &steps);
 	else
-		result = haeun_vm_run(&vm, INSTRUCTION_BUDGET, &steps);
+		result = haeun_vm_run(&vm, run_budget, &steps);
 	if (net_mode && net_host.tx.count > 0)
 		(void)printf("net-host: TX frames=%d last_len=%u real=%d "
 			     "be_tx=%u be_rx=%u\n",
@@ -426,9 +486,16 @@ int main(int argc, char **argv)
 		rc = 0;
 		goto out;
 	}
-	(void)fprintf(stderr,
-		      "guest stopped with result %u at PC 0x%08x (cause %u)\n",
-		      (unsigned)result, vm.pc, vm.cause);
+	if (result == HAEUN_VM_STEP_LIMIT)
+		(void)fprintf(stderr,
+			      "guest stopped: STEP_LIMIT after %llu instructions "
+			      "(budget=%llu) at PC 0x%08x (last cause %u)\n",
+			      (unsigned long long)steps,
+			      (unsigned long long)run_budget, vm.pc, vm.cause);
+	else
+		(void)fprintf(stderr,
+			      "guest stopped with result %u at PC 0x%08x (cause %u)\n",
+			      (unsigned)result, vm.pc, vm.cause);
 	rc = 1;
 out:
 	if (net_mode)

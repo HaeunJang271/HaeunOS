@@ -182,17 +182,28 @@ haeun_app_result haeun_app_ctrl(haeun_app_env *env, int op, uint32_t target_pid,
         return HAEUN_APP_OK;
     }
     if (op == HAEUN_APP_CTRL_CLOSE) {
-        if (env->wm == NULL)
-            return HAEUN_APP_NOENT;
-        for (i = 0; i < HAEUN_GFX_WM_MAX_WINDOWS; ++i) {
-            if (env->wm->windows[i].used &&
-                env->wm->windows[i].owner_pid == (int)target_pid) {
-                if (env->evt != NULL)
-                    haeun_evt_win_post(env->evt, i, HAEUN_EVT_CLOSE, 0u, 0u);
-                found = 2;
-            }
+        haeun_evt ev;
+        int closed_win = 0;
+        /* Queue CLOSE first so the app exits via EVENT_POLL even with no
+         * window yet; then tear down any windows it already owns. */
+        if (env->evt != NULL) {
+            memset(&ev, 0, sizeof(ev));
+            ev.type = (uint16_t)HAEUN_EVT_CLOSE;
+            ev.win = (int16_t)-1;
+            (void)haeun_evt_push(env->evt, (int)target_pid, &ev);
         }
-        return found == 2 ? HAEUN_APP_OK : HAEUN_APP_NOENT;
+        if (env->wm != NULL) {
+            for (i = 0; i < HAEUN_GFX_WM_MAX_WINDOWS; ++i) {
+                if (env->wm->windows[i].used &&
+                    env->wm->windows[i].owner_pid == (int)target_pid) {
+                    (void)haeun_gfx_wm_destroy(env->wm, i);
+                    closed_win = 1;
+                }
+            }
+            if (closed_win && env->evt != NULL)
+                haeun_evt_sync_focus(env->evt);
+        }
+        return HAEUN_APP_OK;
     }
     return HAEUN_APP_BAD_ARGUMENT;
 }

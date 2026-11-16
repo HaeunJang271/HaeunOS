@@ -79,4 +79,4 @@ python tests/m16_repeat_tests.py build/haeun-vm.exe
 - Guest page-fault → dedicated EXIT not implemented.
 - Window exhaustion error not distinct from bad args.
 - Firmware failure prints generic `E`; no structured boot telemetry.
-- Intentional v1 caps: AS≤3, app≤4KiB, FB 64×32, etc.
+- Intentional caps: AS≤3, app≤4KiB, default FB 320×180, etc. (see [limitations.md](limitations.md)).

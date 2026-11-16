@@ -9,7 +9,7 @@
 
 #include <stdint.h>
 
-enum { HAEUN_INPUT_HOST_MAX_EVENTS = 16 };
+enum { HAEUN_INPUT_HOST_MAX_EVENTS = 64 };
 
 typedef enum {
     HAEUN_INPUT_EV_KEY = 1,
@@ -54,6 +54,26 @@ void haeun_vm_input_host_load_demo_script(haeun_vm_input_host *host);
  * Click then key make/break so EVENT_POLL can observe focus-routed events.
  */
 void haeun_vm_input_host_load_m20_script(haeun_vm_input_host *host);
+
+/**
+ * M21 persistent-desktop script: idle window, spawn keys, NOSPC, Esc shutdown.
+ * Does not fabricate guest queue events beyond the existing input-host path.
+ */
+void haeun_vm_input_host_load_m21_script(haeun_vm_input_host *host);
+
+/**
+ * M21.3 stress script: events after the historical 10M budget, then Esc.
+ * Used to prove persist mode survives past INSTRUCTION_BUDGET.
+ */
+void haeun_vm_input_host_load_m21_stress_script(haeun_vm_input_host *host);
+
+/**
+ * M22.3 interactive scripts (guest EVENT_POLL path via chrome/evt).
+ * Names: calc-add, calc-sub, calc-mul, calc-div, calc-bs, calc-esc,
+ * edit-type, files-list, life-cycle. Returns 0 on success, -1 unknown.
+ */
+int haeun_vm_input_host_load_m22_3_script(haeun_vm_input_host *host,
+                                          const char *name);
 
 /**
  * Steps the guest, injecting scripted events at at_step thresholds.

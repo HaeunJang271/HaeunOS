@@ -78,6 +78,7 @@ haeun_sec_result haeun_sec_dispatch(const haeun_sec_syscall_req *req) {
     case HAEUN_SYS_WIN_PIXEL:
     case HAEUN_SYS_WIN_RAISE:
     case HAEUN_SYS_GFX_COMPOSE:
+    case HAEUN_SYS_WIN_FILL_RECT:
         break;
     case HAEUN_SYS_APP_COUNT:
     case HAEUN_SYS_APP_NAME:
@@ -115,6 +116,7 @@ haeun_sec_result haeun_sec_dispatch(const haeun_sec_syscall_req *req) {
     case HAEUN_SYS_EXIT:
     case HAEUN_SYS_FORK:
     case HAEUN_SYS_WAIT:
+    case HAEUN_SYS_TRYWAIT:
     case HAEUN_SYS_SLEEP:
     case HAEUN_SYS_GETPID:
     case HAEUN_SYS_YIELD:

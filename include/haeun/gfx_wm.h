@@ -75,8 +75,19 @@ int haeun_gfx_wm_backing_allowed(const haeun_gfx_wm *wm, const haeun_gfx *gfx,
  */
 int haeun_gfx_wm_in_user_pool(uint32_t base, uint32_t w, uint32_t h);
 
-/** Marks a slot unused and clears focus if needed. */
+/** Marks a slot unused and recovers focus to the next eligible window. */
 haeun_gfx_result haeun_gfx_wm_destroy(haeun_gfx_wm *wm, int id);
+
+/**
+ * Returns the topmost used+visible+!minimized window id by z-order, or -1.
+ */
+int haeun_gfx_wm_top_eligible(const haeun_gfx_wm *wm);
+
+/**
+ * Ensures focus_id is -1 or an eligible window; retargets when invalid.
+ * Documented no-focus (-1) when no eligible window remains.
+ */
+haeun_gfx_result haeun_gfx_wm_focus_recover(haeun_gfx_wm *wm);
 
 /** Moves the window origin in screen space. */
 haeun_gfx_result haeun_gfx_wm_move(haeun_gfx_wm *wm, int id, int32_t x,
@@ -95,7 +106,10 @@ haeun_gfx_result haeun_gfx_wm_set_visible(haeun_gfx_wm *wm, int id,
 /** Raises a window to the top of the z-order. */
 haeun_gfx_result haeun_gfx_wm_raise(haeun_gfx_wm *wm, int id);
 
-/** Sets keyboard/click focus to id, or clears focus when id is -1. */
+/**
+ * Sets keyboard/click focus to an eligible id, or clears when id is -1.
+ * Rejects minimized or invisible windows.
+ */
 haeun_gfx_result haeun_gfx_wm_set_focus(haeun_gfx_wm *wm, int id);
 
 /**
@@ -127,6 +141,13 @@ haeun_gfx_result haeun_gfx_wm_put_pixel(haeun_gfx_wm *wm, int id, uint32_t x,
 
 /** Fills a window backing with a solid color. */
 haeun_gfx_result haeun_gfx_wm_fill(haeun_gfx_wm *wm, int id, uint32_t rgba);
+
+/**
+ * Fills a rectangle inside a window's display size (clipped to w/h).
+ */
+haeun_gfx_result haeun_gfx_wm_fill_rect(haeun_gfx_wm *wm, int id, uint32_t x,
+                                        uint32_t y, uint32_t w, uint32_t h,
+                                        uint32_t rgba);
 
 /** Clears the primary framebuffer then blits visible windows by ascending z. */
 haeun_gfx_result haeun_gfx_compose(haeun_gfx *gfx, haeun_gfx_wm *wm,

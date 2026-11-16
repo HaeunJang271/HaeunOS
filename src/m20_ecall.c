@@ -327,12 +327,13 @@ bool haeun_m20_ecall_io(haeun_vm *vm, void *context) {
             haeun_rf_write(vm, 1u, 0xffffffffu);
             return true;
         }
-        if (deny_win(ctx->wm, pid, wid)) {
+        /* Missing/destroyed window is not an ownership fault. */
+        if (wid < 0 || wid >= HAEUN_GFX_WM_MAX_WINDOWS ||
+            !ctx->wm->windows[wid].used) {
             haeun_rf_write(vm, 1u, 0xffffffffu);
             return true;
         }
-        if (wid < 0 || wid >= HAEUN_GFX_WM_MAX_WINDOWS ||
-            !ctx->wm->windows[wid].used) {
+        if (deny_win(ctx->wm, pid, wid)) {
             haeun_rf_write(vm, 1u, 0xffffffffu);
             return true;
         }

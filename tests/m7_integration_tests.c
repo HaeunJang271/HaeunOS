@@ -150,9 +150,11 @@ static int test_mux_dispatch(void) {
 
 /**
  * End-to-end: guest-like ECALL path via gui host + PPM RGB bars.
+ * RAM must cover HAEUN_GUI_FB_BASE + 320×180×4 (current default FB).
  */
 static int test_gui_host_ppm(void) {
-    uint8_t ram[0x40000];
+    enum { RAM_BYTES = 0x00240000u };
+    uint8_t *ram = (uint8_t *)calloc(1u, (size_t)RAM_BYTES);
     haeun_vm vm;
     haeun_vm_gui_host host;
     char path[] = "build/m7_bars.ppm";
@@ -160,10 +162,10 @@ static int test_gui_host_ppm(void) {
     char line[64];
     uint8_t rgb[3];
     uint32_t id;
-    memset(ram, 0, sizeof(ram));
+    CHECK(ram != NULL);
     put_le32(ram + 0u, ENC(0x0d, 0, 0, 0, 0));
-    CHECK(haeun_vm_init_version(&vm, ram, sizeof(ram), 0u, HAEUN_ISA_VERSION_4) ==
-          HAEUN_VM_OK);
+    CHECK(haeun_vm_init_version(&vm, ram, (size_t)RAM_BYTES, 0u,
+                                HAEUN_ISA_VERSION_4) == HAEUN_VM_OK);
     vm.privilege = HAEUN_PRIV_USER;
     CHECK(haeun_vm_gui_host_attach(&host, &vm) == HAEUN_GFX_OK);
     vm.r[1] = HAEUN_SYS_WIN_CREATE;
@@ -217,7 +219,7 @@ static int test_gui_host_ppm(void) {
     CHECK(fgets(line, sizeof(line), f) != NULL);
     CHECK(strcmp(line, "P6\n") == 0);
     CHECK(fgets(line, sizeof(line), f) != NULL);
-    CHECK(strcmp(line, "64 32\n") == 0);
+    CHECK(strcmp(line, "320 180\n") == 0);
     CHECK(fgets(line, sizeof(line), f) != NULL);
     CHECK(strcmp(line, "255\n") == 0);
     {
@@ -240,6 +242,7 @@ static int test_gui_host_ppm(void) {
         CHECK(rgb[0] == 0u && rgb[1] == 0u && rgb[2] == 0u);
     }
     (void)fclose(f);
+    free(ram);
     return 0;
 }
 

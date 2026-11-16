@@ -1,5 +1,7 @@
 # M20 Architecture Audit — Interactive Userland & System Services
 
+> **HISTORICAL (M22.2):** Early baseline (FB 64×32 / no guest DRAW_TEXT at audit time). Current graphics: [graphics-api.md](graphics-api.md).
+
 Status: **read-only audit complete** (no M20 feature code in this document’s evidence baseline).  
 Date: 2026-11-15. Classification: IMPLEMENTED / PARTIAL / NOT IMPLEMENTED / UNKNOWN.
 

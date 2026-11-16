@@ -1,22 +1,11 @@
 #include "haeun/fb_view.h"
-#include "haeun/vm_viewer.h"
+#include "haeun/vm_gui_host.h"
+#include "haeun/vm_viewer_plat.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <windows.h>
 
 enum { VIEW_SLICE = 256u, VIEW_BGRA_MAX = 1024u * 1024u * 4u };
-
-typedef struct {
-    HWND hwnd;
-    haeun_vm_viewer *viewer;
-    uint8_t *bgra;
-    size_t bgra_cap;
-    uint32_t fb_w;
-    uint32_t fb_h;
-    int quit;
-} viewer_plat;
 
 static viewer_plat *g_plat;
 
@@ -50,51 +39,6 @@ static void post_mouse(haeun_vm_viewer *v, int32_t x, int32_t y, uint32_t button
             hit >= 0)
             v->focus_hits++;
     }
-}
-
-static void paint(viewer_plat *p) {
-    BITMAPINFO bmi;
-    HDC hdc;
-    RECT rc;
-    int scale;
-    int dw, dh, ox, oy;
-    if (p == NULL || p->hwnd == NULL || p->bgra == NULL || p->fb_w == 0u)
-        return;
-    GetClientRect(p->hwnd, &rc);
-    scale = p->viewer != NULL ? p->viewer->scale : 8;
-    dw = (int)p->fb_w * scale;
-    dh = (int)p->fb_h * scale;
-    ox = ((rc.right - rc.left) - dw) / 2;
-    oy = ((rc.bottom - rc.top) - dh) / 2;
-    memset(&bmi, 0, sizeof(bmi));
-    bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bmi.bmiHeader.biWidth = (LONG)p->fb_w;
-    bmi.bmiHeader.biHeight = -(LONG)p->fb_h; /* top-down */
-    bmi.bmiHeader.biPlanes = 1;
-    bmi.bmiHeader.biBitCount = 32;
-    bmi.bmiHeader.biCompression = BI_RGB;
-    hdc = GetDC(p->hwnd);
-    if (hdc == NULL)
-        return;
-    StretchDIBits(hdc, ox, oy, dw, dh, 0, 0, (int)p->fb_w, (int)p->fb_h, p->bgra,
-                  &bmi, DIB_RGB_COLORS, SRCCOPY);
-    ReleaseDC(p->hwnd, hdc);
-    if (p->viewer != NULL)
-        p->viewer->frames_drawn++;
-}
-
-static void refresh_fb(viewer_plat *p) {
-    uint32_t w = 0u, h = 0u;
-    if (p == NULL || p->viewer == NULL || p->viewer->vm == NULL)
-        return;
-    if (p->viewer->chrome != NULL)
-        (void)haeun_gfx_chrome_present(p->viewer->chrome, 0x203040FFu);
-    if (haeun_fb_view_snapshot_bgra(p->viewer->vm, p->bgra, p->bgra_cap, &w,
-                                    &h) != HAEUN_FB_VIEW_OK)
-        return;
-    p->fb_w = w;
-    p->fb_h = h;
-    paint(p);
 }
 
 static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
@@ -132,9 +76,9 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             buttons |= 4u;
         if (haeun_fb_view_map_mouse((int)(short)LOWORD(lp), (int)(short)HIWORD(lp),
                                     rc.right - rc.left, rc.bottom - rc.top,
-                                    p->fb_w != 0u ? p->fb_w : 64u,
-                                    p->fb_h != 0u ? p->fb_h : 32u, &fx,
-                                    &fy) == 0)
+                                    p->fb_w != 0u ? p->fb_w : HAEUN_GUI_FB_WIDTH,
+                                    p->fb_h != 0u ? p->fb_h : HAEUN_GUI_FB_HEIGHT,
+                                    &fx, &fy) == 0)
             post_mouse(v, fx, fy, buttons);
         return 0;
     }
@@ -148,18 +92,21 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         GetClientRect(hwnd, &rc);
         if (haeun_fb_view_map_mouse(pt.x, pt.y, rc.right - rc.left,
                                     rc.bottom - rc.top,
-                                    p->fb_w != 0u ? p->fb_w : 64u,
-                                    p->fb_h != 0u ? p->fb_h : 32u, &fx,
-                                    &fy) == 0) {
+                                    p->fb_w != 0u ? p->fb_w : HAEUN_GUI_FB_WIDTH,
+                                    p->fb_h != 0u ? p->fb_h : HAEUN_GUI_FB_HEIGHT,
+                                    &fx, &fy) == 0) {
             if (v->chrome != NULL && v->chrome->evt != NULL)
                 haeun_evt_route_wheel(v->chrome->evt, fx, fy, (int32_t)delta);
         }
         return 0;
     }
+    if (msg == WM_ERASEBKGND)
+        return 1;
     if (msg == WM_PAINT) {
         PAINTSTRUCT ps;
         BeginPaint(hwnd, &ps);
-        paint(p);
+        if (p != NULL && p->fb_w != 0u)
+            haeun_viewer_paint(p);
         EndPaint(hwnd, &ps);
         return 0;
     }
@@ -168,18 +115,23 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
 static int open_window(viewer_plat *p, int scale) {
     WNDCLASSW wc;
-    int ww, wh;
+    RECT cr;
+    DWORD style = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
     memset(&wc, 0, sizeof(wc));
     wc.lpfnWndProc = wnd_proc;
     wc.hInstance = GetModuleHandleW(NULL);
     wc.lpszClassName = L"HaeunViewer";
     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
     RegisterClassW(&wc);
-    ww = 64 * scale + 32;
-    wh = 32 * scale + 48;
-    p->hwnd = CreateWindowExW(0, L"HaeunViewer", L"HAEUN-OS Viewer",
-                              WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT,
-                              CW_USEDEFAULT, ww, wh, NULL, NULL, wc.hInstance,
+    cr.left = 0;
+    cr.top = 0;
+    cr.right = (LONG)HAEUN_GUI_FB_WIDTH * scale;
+    cr.bottom = (LONG)HAEUN_GUI_FB_HEIGHT * scale;
+    AdjustWindowRect(&cr, style & ~WS_VISIBLE, FALSE);
+    p->hwnd = CreateWindowExW(0, L"HaeunViewer", L"HAEUN-OS Viewer", style,
+                              CW_USEDEFAULT, CW_USEDEFAULT, cr.right - cr.left,
+                              cr.bottom - cr.top, NULL, NULL, wc.hInstance,
                               NULL);
     return p->hwnd != NULL ? 0 : -1;
 }
@@ -196,9 +148,7 @@ static void pump(viewer_plat *p) {
     }
 }
 
-/**
- * Arms the Win32 viewer; IRQ lines stay clear for poll-only M10 input.
- */
+/** Arms the Win32 viewer; IRQ lines stay clear for poll-only M10 input. */
 haeun_viewer_result haeun_vm_viewer_attach(haeun_vm_viewer *viewer, haeun_vm *vm,
                                            haeun_gfx_wm *wm, int live_input) {
     if (viewer == NULL || vm == NULL)
@@ -207,7 +157,7 @@ haeun_viewer_result haeun_vm_viewer_attach(haeun_vm_viewer *viewer, haeun_vm *vm
     viewer->vm = vm;
     viewer->wm = wm;
     viewer->live_input = live_input != 0 ? 1 : 0;
-    viewer->scale = 8;
+    viewer->scale = 2; /* 320x180 → ~640x360 client */
     vm->kbd_control = 0u;
     vm->mouse_control = 0u;
     viewer->attached = 1;
@@ -233,9 +183,7 @@ static void apply_script(haeun_vm_viewer *viewer, uint64_t steps) {
     }
 }
 
-/**
- * Cooperative run: VM slices, message pump, FB blit; no concurrent threads.
- */
+/** Cooperative run: VM slices, message pump, FB blit; no concurrent threads. */
 haeun_vm_result haeun_vm_viewer_run(haeun_vm_viewer *viewer, haeun_vm *vm,
                                     uint64_t max_steps,
                                     uint64_t *steps_executed) {
@@ -268,15 +216,16 @@ haeun_vm_result haeun_vm_viewer_run(haeun_vm_viewer *viewer, haeun_vm *vm,
                 goto done;
         }
         pump(&plat);
-        refresh_fb(&plat);
+        haeun_viewer_refresh_fb(&plat);
     }
     if (!plat.quit && st == HAEUN_VM_OK && *steps_executed >= max_steps)
         st = HAEUN_VM_STEP_LIMIT;
 done:
-    refresh_fb(&plat);
+    haeun_viewer_refresh_fb(&plat);
     if (plat.hwnd != NULL)
         DestroyWindow(plat.hwnd);
     pump(&plat);
+    haeun_viewer_blit_fini(&plat);
     viewer->window_open = 0;
     viewer->platform = NULL;
     free(plat.bgra);

@@ -18,7 +18,7 @@ def read_ppm_pixel(path: Path, x: int, y: int, width: int) -> tuple[int, int, in
         raise AssertionError("missing P6 magic")
     parts = data.split(b"\n", 3)
     dims = parts[1].decode().split()
-    assert dims == [str(width), "32"], dims
+    assert dims == [str(width), "180"], dims
     assert parts[2] == b"255"
     body = parts[3]
     off = (y * width + x) * 3
@@ -47,10 +47,11 @@ def main(argv: list[str]) -> int:
         return 1
     assert "guest halted" in result.stdout
     assert ppm.is_file()
-    assert read_ppm_pixel(ppm, 0, 0, 64) == (255, 0, 0)
-    assert read_ppm_pixel(ppm, 16, 0, 64) == (0, 255, 0)
-    assert read_ppm_pixel(ppm, 32, 0, 64) == (0, 0, 255)
-    assert read_ppm_pixel(ppm, 48, 0, 64) == (0, 0, 0)
+    fb_w = 320
+    assert read_ppm_pixel(ppm, 0, 0, fb_w) == (255, 0, 0)
+    assert read_ppm_pixel(ppm, 16, 0, fb_w) == (0, 255, 0)
+    assert read_ppm_pixel(ppm, 32, 0, fb_w) == (0, 0, 255)
+    assert read_ppm_pixel(ppm, 48, 0, fb_w) == (0, 0, 0)
     print("m7 guest gui tests passed")
     return 0
 

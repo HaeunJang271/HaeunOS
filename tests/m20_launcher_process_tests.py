@@ -52,10 +52,14 @@ def main(argv: list[str]) -> int:
         assert "[haeun-fault]" not in blob, blob
         assert "apps: registered calc" in result.stdout, blob
         assert "app-env: spawn calc" in result.stdout, blob
-        # Dual spawn is best-effort once AS slots free after WAIT.
         assert "app-env: spawn edit" in result.stdout, blob
+        assert "app-env: spawn NOSPC" in blob, blob
+        assert "app-env: spawn filemgr" in result.stdout or (
+            "app-env: spawn app_filemgr" in result.stdout
+        ), blob
         assert "apps: registered svcidle" in result.stdout, blob
         assert "app-env: spawn svcidle" in result.stdout, blob
+        assert "r1=0x00000001" in result.stdout, blob
     except AssertionError as exc:
         print(exc, file=sys.stderr)
         print(blob, file=sys.stderr)

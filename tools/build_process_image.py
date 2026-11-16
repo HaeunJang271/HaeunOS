@@ -14,6 +14,8 @@ KERNEL_SRCS = [
     ROOT / "kernel/process/proc_trap.s",
     ROOT / "kernel/process/proc_sys.s",
     ROOT / "kernel/process/proc_fork.s",
+    ROOT / "kernel/process/proc_fork_mem.s",
+    ROOT / "kernel/process/proc_orphan.s",
     ROOT / "kernel/process/proc_sched.s",
 ]
 
@@ -51,10 +53,13 @@ def _pad_bytes(n: int) -> bytes:
     return tc.assemble("\n".join(lines) + "\n")
 
 
-def build_with_user(user_source: Path) -> bytes:
+def build_with_user(
+    user_source: Path, extra_sources: list[Path] | None = None
+) -> bytes:
     """
     Link process kernel with user_source as user_init at 0x00108000.
 
+    Optional extra_sources are linked after the primary user object (helpers).
     Patches trapvec to the linked trap_entry address.
     """
     kernel_objs = [
@@ -72,6 +77,8 @@ def build_with_user(user_source: Path) -> bytes:
     if pad_size:
         blobs.append(_pad_bytes(pad_size))
     blobs.append(user_obj)
+    for extra in extra_sources or []:
+        blobs.append(tc.assemble(extra.read_text(encoding="utf-8")))
     boot_text = KERNEL_SRCS[0].read_text(encoding="utf-8")
     old = "    jal r1, p_tv\n    .word 0x00100000\np_tv:"
     new = f"    jal r1, p_tv\n    .word 0x{trap_va:08X}\np_tv:"

@@ -124,7 +124,17 @@ void haeun_evt_win_post(haeun_evt_hub *hub, int win, uint16_t type, uint32_t a,
         evt_log("win_post failed");
 }
 
-/** Pushes KEY_DOWN/UP to the focused window's owner_pid. */
+/** True when focus_id names a used+visible+!minimized window. */
+static int focus_eligible(const haeun_evt_hub *hub, int win) {
+    const haeun_gfx_window *w;
+    if (hub == NULL || hub->wm == NULL || win < 0 ||
+        win >= HAEUN_GFX_WM_MAX_WINDOWS)
+        return 0;
+    w = &hub->wm->windows[win];
+    return w->used && w->visible && !w->minimized;
+}
+
+/** Pushes KEY_DOWN/UP to the focused eligible window's owner_pid. */
 void haeun_evt_route_key(haeun_evt_hub *hub, uint8_t scancode, int is_break) {
     haeun_evt ev;
     int win;
@@ -132,6 +142,10 @@ void haeun_evt_route_key(haeun_evt_hub *hub, uint8_t scancode, int is_break) {
     if (hub == NULL || hub->wm == NULL)
         return;
     win = hub->wm->focus_id;
+    if (!focus_eligible(hub, win)) {
+        evt_log("key dropped (ineligible focus)");
+        return;
+    }
     pid = owner_of(hub, win);
     if (pid <= 0) {
         evt_log("key dropped (no focused owner)");
@@ -141,6 +155,9 @@ void haeun_evt_route_key(haeun_evt_hub *hub, uint8_t scancode, int is_break) {
     ev.type = is_break ? (uint16_t)HAEUN_EVT_KEY_UP : (uint16_t)HAEUN_EVT_KEY_DOWN;
     ev.win = (int16_t)win;
     ev.a = scancode & 0x7fu;
+    (void)fprintf(stderr, "[haeun-evt] key pid=%d sc=0x%02x %s\n", pid,
+                  (unsigned)(scancode & 0x7fu),
+                  is_break ? "up" : "down");
     if (haeun_evt_push(hub, pid, &ev) != 0)
         evt_log("key push failed");
 }
@@ -176,14 +193,28 @@ void haeun_evt_on_focus(haeun_evt_hub *hub, int new_focus_id) {
     hub->last_focus = new_focus_id;
 }
 
-/** Aligns hub->last_focus with wm->focus_id. */
+/**
+ * Aligns hub->last_focus with wm->focus_id.
+ * Mutation paths (minimize/destroy/hide) must recover focus first; this only
+ * clears stale focus_id when the pointed slot is no longer eligible.
+ */
 void haeun_evt_sync_focus(haeun_evt_hub *hub) {
     int cur;
     if (hub == NULL || hub->wm == NULL)
         return;
     cur = hub->wm->focus_id;
-    if (cur >= 0 && (cur >= HAEUN_GFX_WM_MAX_WINDOWS || !hub->wm->windows[cur].used))
-        cur = -1;
+    if (cur >= 0) {
+        const haeun_gfx_window *w;
+        if (cur >= HAEUN_GFX_WM_MAX_WINDOWS) {
+            cur = -1;
+        } else {
+            w = &hub->wm->windows[cur];
+            if (!w->used || !w->visible || w->minimized)
+                cur = -1;
+        }
+        if (cur != hub->wm->focus_id)
+            hub->wm->focus_id = cur;
+    }
     haeun_evt_on_focus(hub, cur);
 }
 
@@ -201,8 +232,10 @@ void haeun_evt_route_mouse(haeun_evt_hub *hub, int32_t sx, int32_t sy,
     if (hub == NULL || hub->wm == NULL)
         return;
     win = hub->wm->focus_id;
+    if (!focus_eligible(hub, win))
+        return;
     pid = owner_of(hub, win);
-    if (pid <= 0 || win < 0)
+    if (pid <= 0)
         return;
     w = &hub->wm->windows[win];
     lx = sx - w->x;
@@ -240,8 +273,12 @@ void haeun_evt_route_wheel(haeun_evt_hub *hub, int32_t sx, int32_t sy,
     if (hub == NULL || hub->wm == NULL || delta == 0)
         return;
     win = hub->wm->focus_id;
+    if (!focus_eligible(hub, win)) {
+        evt_log("wheel dropped (ineligible focus)");
+        return;
+    }
     pid = owner_of(hub, win);
-    if (pid <= 0 || win < 0) {
+    if (pid <= 0) {
         evt_log("wheel dropped (no focused owner)");
         return;
     }

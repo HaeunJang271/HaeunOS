@@ -61,7 +61,9 @@ def main(argv: list[str]) -> int:
         assert "[haeun-fault]" not in blob, blob
         assert "app-env: spawn calc" in blob, blob
         assert "app-env: spawn edit" in blob, blob
+        assert "app-env: spawn filemgr" in blob or "app-env: spawn app_filemgr" in blob, blob
         assert "app-env: spawn svcidle" in blob, blob
+        assert "app-env: spawn NOSPC" in blob, blob
     except AssertionError as exc:
         print(exc, file=sys.stderr)
         print(blob, file=sys.stderr)
@@ -80,6 +82,8 @@ def main(argv: list[str]) -> int:
             str(out / "app_filemgr.hxf"),
             "--gui",
             "--desktop",
+            "--input-script",
+            "solo-esc",
         ],
     )
     if code != 0:

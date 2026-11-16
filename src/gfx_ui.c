@@ -58,7 +58,7 @@ haeun_gfx_result haeun_gfx_ui_draw_char(haeun_gfx_wm *wm, int id, uint32_t x,
     for (row = 0u; row < (uint32_t)HAEUN_GFX_UI_GLYPH; ++row) {
         uint8_t bits = rows[row];
         for (col = 0u; col < (uint32_t)HAEUN_GFX_UI_GLYPH; ++col) {
-            int on = (bits & (uint8_t)(0x80u >> col)) != 0u;
+            int on = (bits & (uint8_t)(1u << col)) != 0u;
             haeun_gfx_result r;
             if (!on && bg == 0u)
                 continue;

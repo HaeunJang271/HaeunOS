@@ -65,13 +65,13 @@ static int test_glyph_pixels(void) {
     rows = haeun_gfx_font8_rows('A');
     for (row = 0; row < 8u; ++row) {
         for (col = 0; col < 8u; ++col) {
-            int on = (rows[row] & (uint8_t)(0x80u >> col)) != 0u;
+            int on = (rows[row] & (uint8_t)(1u << col)) != 0u;
             uint32_t px = win_px(&wm, id, col, row);
             CHECK(px == (on ? fg : bg));
         }
     }
-    /* 'A' row0=0x0C → columns 4..5 are foreground */
-    CHECK(win_px(&wm, id, 4u, 0u) == fg);
+    /* 'A' row0=0x0C → bit0-left columns 2..3 are foreground */
+    CHECK(win_px(&wm, id, 2u, 0u) == fg);
     return 0;
 }
 
@@ -92,14 +92,14 @@ static int test_newline_wrap_clip(void) {
     CHECK(haeun_gfx_wm_fill(&wm, id, bg) == HAEUN_GFX_OK);
     CHECK(haeun_gfx_ui_draw_text(&wm, id, 0, 0, "AB\nC", fg, bg) ==
           HAEUN_GFX_OK);
-    /* 'A' has ink at (4,0) */
-    CHECK(win_px(&wm, id, 4u, 0u) == fg);
+    /* 'A' has ink at (2,0) with bit0-left font */
+    CHECK(win_px(&wm, id, 2u, 0u) == fg);
     /* 'C' after newline at y=8 */
-    CHECK(win_px(&wm, id, 4u, 8u) == fg);
+    CHECK(win_px(&wm, id, 2u, 8u) == fg);
     CHECK(haeun_gfx_wm_fill(&wm, id, bg) == HAEUN_GFX_OK);
     CHECK(haeun_gfx_ui_draw_text(&wm, id, 0, 0, "ABCD", fg, bg) == HAEUN_GFX_OK);
     /* width 16 → wrap after 2 glyphs; 'C' at y=8 */
-    CHECK(win_px(&wm, id, 4u, 8u) == fg);
+    CHECK(win_px(&wm, id, 2u, 8u) == fg);
     /* clip: draw at x=12 should not write past w=16 into foreign memory —
        only OOB skip; pixel at 12 still in window */
     CHECK(haeun_gfx_ui_draw_char(&wm, id, 12, 0, 'X', fg, bg) == HAEUN_GFX_OK);
@@ -202,8 +202,8 @@ static int test_ecall_security(void) {
     vm.r[7] = 0x300u;
     CHECK(haeun_vm_step(&vm) == HAEUN_VM_OK);
     CHECK(vm.r[1] == 0u);
-    /* 'H' row0=0x33 → ink at columns 2..3 and 6..7 */
-    CHECK(win_px(&wm, id_a, 2u, 0u) == 0xFFFFFFFFu);
+    /* 'H' row0=0x33 → bit0-left ink at columns 0..1 and 4..5 */
+    CHECK(win_px(&wm, id_a, 0u, 0u) == 0xFFFFFFFFu);
     /* bad window id */
     vm.pc = 0u;
     vm.r[1] = HAEUN_SYS_WIN_DRAW_TEXT;

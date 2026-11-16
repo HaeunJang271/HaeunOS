@@ -65,6 +65,110 @@ void haeun_vm_input_host_load_m20_script(haeun_vm_input_host *host) {
         .at_step = 80250u, .kind = HAEUN_INPUT_EV_KEY, .scancode = 0x9Eu};
 }
 
+/**
+ * Timeline for process_desktop: prove idle, launch cycle, NOSPC, clean Esc.
+ * Spacing leaves room for APP_SPAWN + WAIT + reclaim between keys.
+ */
+void haeun_vm_input_host_load_m21_script(haeun_vm_input_host *host) {
+    if (host == NULL)
+        return;
+    host->event_count = 0;
+    host->next_event = 0;
+    /* Focus wallpaper strip under title (y=8); avoid icon/label hit boxes. */
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 2000u,
+        .kind = HAEUN_INPUT_EV_MOUSE,
+        .x = 32,
+        .y = 8,
+        .buttons = 1u};
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 2100u,
+        .kind = HAEUN_INPUT_EV_MOUSE,
+        .x = 32,
+        .y = 8,
+        .buttons = 0u};
+    /* Persistent apps: Esc after each launch frees the AS slot. */
+    /* 1 = calc */
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 8000u, .kind = HAEUN_INPUT_EV_KEY, .scancode = 0x02u};
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 40000u, .kind = HAEUN_INPUT_EV_KEY, .scancode = 0x01u};
+    /* 2 = edit */
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 120000u, .kind = HAEUN_INPUT_EV_KEY, .scancode = 0x03u};
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 160000u, .kind = HAEUN_INPUT_EV_KEY, .scancode = 0x01u};
+    /* 3 = filemgr (count-1) */
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 240000u, .kind = HAEUN_INPUT_EV_KEY, .scancode = 0x04u};
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 280000u, .kind = HAEUN_INPUT_EV_KEY, .scancode = 0x01u};
+    /* repeat calc */
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 360000u, .kind = HAEUN_INPUT_EV_KEY, .scancode = 0x02u};
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 400000u, .kind = HAEUN_INPUT_EV_KEY, .scancode = 0x01u};
+    /* 4 = NOSPC probe (desktop closes the fillers itself) */
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 480000u, .kind = HAEUN_INPUT_EV_KEY, .scancode = 0x05u};
+    /* Raise desktop (header) so Esc reaches the shell, not a child app. */
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 650000u,
+        .kind = HAEUN_INPUT_EV_MOUSE,
+        .x = 160,
+        .y = 10,
+        .buttons = 1u};
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 650100u,
+        .kind = HAEUN_INPUT_EV_MOUSE,
+        .x = 160,
+        .y = 10,
+        .buttons = 0u};
+    /* Esc = explicit shutdown */
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 700000u, .kind = HAEUN_INPUT_EV_KEY, .scancode = 0x01u};
+}
+
+/**
+ * Post-10M timeline: click, digit key, click, Esc — requires unbounded persist budget.
+ */
+void haeun_vm_input_host_load_m21_stress_script(haeun_vm_input_host *host) {
+    if (host == NULL)
+        return;
+    host->event_count = 0;
+    host->next_event = 0;
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 2000u,
+        .kind = HAEUN_INPUT_EV_MOUSE,
+        .x = 32,
+        .y = 8,
+        .buttons = 1u};
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 2100u,
+        .kind = HAEUN_INPUT_EV_MOUSE,
+        .x = 32,
+        .y = 8,
+        .buttons = 0u};
+    /*
+     * Past historical 10M: wallpaper click at (32,8), then Esc.
+     * y=8 sits between title and shortcuts — not in spawn hit tests.
+     */
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 10500000u,
+        .kind = HAEUN_INPUT_EV_MOUSE,
+        .x = 32,
+        .y = 8,
+        .buttons = 1u};
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 10510000u,
+        .kind = HAEUN_INPUT_EV_MOUSE,
+        .x = 32,
+        .y = 8,
+        .buttons = 0u};
+    host->events[host->event_count++] = (haeun_input_script_ev){
+        .at_step = 11000000u, .kind = HAEUN_INPUT_EV_KEY, .scancode = 0x01u};
+}
+
 static void deliver_one(haeun_vm_input_host *host, haeun_vm *vm,
                         const haeun_input_script_ev *ev) {
     int hit = -1;

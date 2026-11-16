@@ -16,10 +16,15 @@ enum {
     HAEUN_APP_VER_MAX = 8,
     HAEUN_APP_CAT_MAX = 8,
     HAEUN_APP_CODE_MAX = 4096u,
+    HAEUN_APP_HEAP_SIZE = 4096u,
     HAEUN_APP_USER_VA = 0x00108000u,
+    HAEUN_APP_HEAP_VA = 0x00109000u,
     HAEUN_APP_SLOT_CODE_PA0 = 0x00108000u,
     HAEUN_APP_SLOT_CODE_PA1 = 0x0010C000u,
     HAEUN_APP_SLOT_CODE_PA2 = 0x0010D000u,
+    HAEUN_APP_SLOT_HEAP_PA0 = 0x0010E000u,
+    HAEUN_APP_SLOT_HEAP_PA1 = 0x0010F000u,
+    HAEUN_APP_SLOT_HEAP_PA2 = 0x00110000u,
     HAEUN_APP_SLOTS = 3,
     HAEUN_APP_FLAG_SINGLE = 1u,
     /* APP_INFO field ids (ECALL 38) */
@@ -142,6 +147,11 @@ haeun_app_result haeun_app_destroy_windows(haeun_gfx_wm *wm, uint32_t pid);
 
 /** Returns the code PA for an AS slot, or 0 if out of range. */
 uint32_t haeun_app_slot_code_pa(int slot);
+
+/**
+ * Returns the fixed user-heap PA for an AS slot, or 0 if out of range.
+ */
+uint32_t haeun_app_slot_heap_pa(int slot);
 
 /** Reads the guest L0 user-code PTE word for a slot (0 if invalid). */
 uint32_t haeun_app_slot_user_pte(const haeun_app_env *env, int slot);

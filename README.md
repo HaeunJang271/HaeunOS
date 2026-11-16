@@ -23,6 +23,17 @@ build/haeun-vm.exe build/process_apps.hxf --apps
 build/haeun-vm.exe build/process_sdk.hxf --app path\to\app.hxf
 ```
 
+Interactive 320×180 desktop (tiles → Calculator / Editor / Files):
+
+```sh
+build/haeun-vm.exe build/process_desktop.hxf --apps --persist --viewer
+```
+
+- **Calculator** — digits, `+` (`=` key / keypad `+`), `-`, `x`, `/`, Enter (=), Backspace, Esc
+- **Editor** — type letters/digits, Space, Backspace, Esc
+- **Files** — app registry list; Esc closes
+- Desktop: keys `1`–`3` launch apps, Esc quits the shell (click the window for focus)
+
 Developer SDK (`dist/haeun-sdk-1.0.0/` after `make sdk`):
 
 ```sh
@@ -39,7 +50,7 @@ Or from the staged OS package `dist/haeun-os-1.0.0/` — see [docs/getting-start
 ```text
 haeun-vm <hxf>|--firmware <hfw> [--disk IMG] [--root-hash HEX]
   [--gui] [--desktop] [--apps] [--app HXF]... [--net|--net-real] [--input]
-  [--viewer] [--user] [--fb-dump PPM]
+  [--viewer] [--persist] [--max-steps N] [--user] [--fb-dump PPM]
 ```
 
 ## Requirements
@@ -56,14 +67,16 @@ haeun-vm <hxf>|--firmware <hfw> [--disk IMG] [--root-hash HEX]
 | Firmware disk boot + HXF direct load | Supported |
 | Process-v1 scheduler / syscalls | Supported |
 | HFS + process FD ownership | Supported |
-| GUI 64×32, WM, desktop, Win32 viewer | Supported |
+| GUI FB 320×180, WM, chrome, Win32 viewer | Supported |
+| M22 desktop shell (`process_desktop.hxf`) | Supported (`--persist --viewer`) |
 | Sockets + `--net` / `--net-real` | Supported |
-| `--apps` launcher (calc/edit/files) | Supported |
+| `--apps` builtins (calc / edit / files) | Supported (persistent until Esc/CLOSE) |
 | M20.5 `process_launch.hxf` GUI launcher | Supported (APP_INFO/RUN/CTRL) |
 | M20.6 Service Manager (ECALL 41–46) | Supported (see `docs/m20-service-manager-report.md`) |
 | M20.7 File Manager (ECALL 47–50) | Supported (see `docs/m20-file-manager-report.md`) |
 | `--app` + Developer SDK (`haeun` CLI) | Supported |
-| M20 events / IPC / WIN_DRAW_TEXT | Supported (see `docs/m20-completion-report.md`) |
+| M20 events / IPC / WIN_DRAW_TEXT / FILL_RECT | Supported (see `docs/m20-completion-report.md`) |
+| M21 persistent runtime + input scripts | Supported |
 | M15 isolation + M17 user fault → ZOMBIE | Supported |
 | GUI+net mux merge | Supported |
 

@@ -171,7 +171,55 @@ int haeun_gfx_wm_owned_by(const haeun_gfx_wm *wm, int id, int pid) {
 }
 
 /**
- * Destroys a registered window slot.
+ * Returns the topmost used+visible+!minimized window id by z-order, or -1.
+ * Prefers guest-owned windows (owner_pid > 0) over unowned shell surfaces.
+ */
+int haeun_gfx_wm_top_eligible(const haeun_gfx_wm *wm) {
+    int i;
+    int best_any = -1;
+    int best_owned = -1;
+    uint32_t best_any_z = 0u;
+    uint32_t best_owned_z = 0u;
+    if (wm == NULL)
+        return -1;
+    for (i = 0; i < HAEUN_GFX_WM_MAX_WINDOWS; ++i) {
+        const haeun_gfx_window *w = &wm->windows[i];
+        if (!w->used || !w->visible || w->minimized)
+            continue;
+        if (best_any < 0 || w->z >= best_any_z) {
+            best_any = i;
+            best_any_z = w->z;
+        }
+        if (w->owner_pid > 0 &&
+            (best_owned < 0 || w->z >= best_owned_z)) {
+            best_owned = i;
+            best_owned_z = w->z;
+        }
+    }
+    return best_owned >= 0 ? best_owned : best_any;
+}
+
+/**
+ * Ensures focus_id is eligible; retargets to top eligible or -1 (no-focus).
+ */
+haeun_gfx_result haeun_gfx_wm_focus_recover(haeun_gfx_wm *wm) {
+    int cur;
+    if (wm == NULL) {
+        log_fail("wm_focus_recover bad argument");
+        return HAEUN_GFX_BAD_ARGUMENT;
+    }
+    cur = wm->focus_id;
+    if (cur >= 0 && cur < HAEUN_GFX_WM_MAX_WINDOWS) {
+        const haeun_gfx_window *w = &wm->windows[cur];
+        if (w->used && w->visible && !w->minimized)
+            return HAEUN_GFX_OK;
+    }
+    wm->focus_id = haeun_gfx_wm_top_eligible(wm);
+    return HAEUN_GFX_OK;
+}
+
+/**
+ * Destroys a registered window slot and recovers focus.
  */
 haeun_gfx_result haeun_gfx_wm_destroy(haeun_gfx_wm *wm, int id) {
     haeun_gfx_window *win = slot(wm, id);
@@ -179,10 +227,8 @@ haeun_gfx_result haeun_gfx_wm_destroy(haeun_gfx_wm *wm, int id) {
         log_fail("wm_destroy unknown id");
         return HAEUN_GFX_BAD_ARGUMENT;
     }
-    if (wm->focus_id == id)
-        wm->focus_id = -1;
     memset(win, 0, sizeof(*win));
-    return HAEUN_GFX_OK;
+    return haeun_gfx_wm_focus_recover(wm);
 }
 
 /**
@@ -201,7 +247,8 @@ haeun_gfx_result haeun_gfx_wm_move(haeun_gfx_wm *wm, int id, int32_t x,
 }
 
 /**
- * Sets window visibility for the compositor.
+ * Sets window visibility for the compositor; recovers focus when hiding.
+ * Showing clears minimized so used/visible/minimized stay consistent.
  */
 haeun_gfx_result haeun_gfx_wm_set_visible(haeun_gfx_wm *wm, int id,
                                           int visible) {
@@ -210,8 +257,13 @@ haeun_gfx_result haeun_gfx_wm_set_visible(haeun_gfx_wm *wm, int id,
         log_fail("wm_set_visible unknown id");
         return HAEUN_GFX_BAD_ARGUMENT;
     }
-    win->visible = visible != 0 ? 1 : 0;
-    return HAEUN_GFX_OK;
+    if (visible != 0) {
+        win->visible = 1;
+        win->minimized = 0;
+        return HAEUN_GFX_OK;
+    }
+    win->visible = 0;
+    return haeun_gfx_wm_focus_recover(wm);
 }
 
 /**
@@ -228,9 +280,11 @@ haeun_gfx_result haeun_gfx_wm_raise(haeun_gfx_wm *wm, int id) {
 }
 
 /**
- * Assigns focus to a used window id, or clears when id == -1.
+ * Assigns focus to an eligible window id, or clears when id == -1.
+ * Rejects minimized or invisible targets (never focus ineligible slots).
  */
 haeun_gfx_result haeun_gfx_wm_set_focus(haeun_gfx_wm *wm, int id) {
+    haeun_gfx_window *win;
     if (wm == NULL) {
         log_fail("wm_set_focus bad argument");
         return HAEUN_GFX_BAD_ARGUMENT;
@@ -239,8 +293,13 @@ haeun_gfx_result haeun_gfx_wm_set_focus(haeun_gfx_wm *wm, int id) {
         wm->focus_id = -1;
         return HAEUN_GFX_OK;
     }
-    if (slot(wm, id) == NULL) {
+    win = slot(wm, id);
+    if (win == NULL) {
         log_fail("wm_set_focus unknown id");
+        return HAEUN_GFX_BAD_ARGUMENT;
+    }
+    if (!win->visible || win->minimized) {
+        log_fail("wm_set_focus ineligible (min/hidden)");
         return HAEUN_GFX_BAD_ARGUMENT;
     }
     wm->focus_id = id;
@@ -249,12 +308,16 @@ haeun_gfx_result haeun_gfx_wm_set_focus(haeun_gfx_wm *wm, int id) {
 
 /**
  * Picks the topmost visible window containing (sx,sy) and focuses it.
+ * Guest-owned windows win over unowned shell surfaces at the same point.
  */
 haeun_gfx_result haeun_gfx_wm_hit_focus(haeun_gfx_wm *wm, int32_t sx,
                                         int32_t sy, int *out_id) {
     int i;
-    int best = -1;
-    uint32_t best_z = 0u;
+    int best_any = -1;
+    int best_owned = -1;
+    uint32_t best_any_z = 0u;
+    uint32_t best_owned_z = 0u;
+    int best;
     if (wm == NULL) {
         log_fail("wm_hit_focus bad argument");
         return HAEUN_GFX_BAD_ARGUMENT;
@@ -269,11 +332,17 @@ haeun_gfx_result haeun_gfx_wm_hit_focus(haeun_gfx_wm *wm, int32_t sx,
         y1 = w->y + (int32_t)w->h;
         if (sx < w->x || sy < w->y || sx >= x1 || sy >= y1)
             continue;
-        if (best < 0 || w->z >= best_z) {
-            best = i;
-            best_z = w->z;
+        if (best_any < 0 || w->z >= best_any_z) {
+            best_any = i;
+            best_any_z = w->z;
+        }
+        if (w->owner_pid > 0 &&
+            (best_owned < 0 || w->z >= best_owned_z)) {
+            best_owned = i;
+            best_owned_z = w->z;
         }
     }
+    best = best_owned >= 0 ? best_owned : best_any;
     if (best < 0) {
         wm->focus_id = -1;
         if (out_id != NULL)

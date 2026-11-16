@@ -15,7 +15,7 @@ def read_ppm_pixel(path: Path, x: int, y: int, width: int) -> tuple[int, int, in
     data = path.read_bytes()
     parts = data.split(b"\n", 3)
     assert parts[0] == b"P6"
-    assert parts[1].decode().split() == [str(width), "32"]
+    assert parts[1].decode().split() == [str(width), "180"]
     body = parts[3]
     off = (y * width + x) * 3
     return body[off], body[off + 1], body[off + 2]
@@ -50,10 +50,11 @@ def main(argv: list[str]) -> int:
     # EXIT(code=pid) → r1 holds exit code when last process halts.
     assert "r1=0x00000001" in result.stdout, result.stdout
     assert ppm.is_file()
-    assert read_ppm_pixel(ppm, 0, 0, 64) == (255, 0, 0)
-    assert read_ppm_pixel(ppm, 16, 0, 64) == (0, 255, 0)
-    assert read_ppm_pixel(ppm, 32, 0, 64) == (0, 0, 255)
-    assert read_ppm_pixel(ppm, 48, 0, 64) == (0, 0, 0)
+    fb_w = 320
+    assert read_ppm_pixel(ppm, 0, 0, fb_w) == (255, 0, 0)
+    assert read_ppm_pixel(ppm, 16, 0, fb_w) == (0, 255, 0)
+    assert read_ppm_pixel(ppm, 32, 0, fb_w) == (0, 0, 255)
+    assert read_ppm_pixel(ppm, 48, 0, fb_w) == (0, 0, 0)
 
     # Host-side PCB inspection through a dedicated probe binary.
     probe = out / ("m8-pcb-probe.exe" if sys.platform == "win32" else "m8-pcb-probe")

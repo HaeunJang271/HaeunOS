@@ -15,7 +15,9 @@ static int order_windows(const haeun_gfx_wm *wm, int *order, int *count) {
     int n = 0;
     int i, j;
     for (i = 0; i < HAEUN_GFX_WM_MAX_WINDOWS; ++i) {
-        if (wm->windows[i].used && wm->windows[i].visible)
+        /* Minimized must not blit even if visible was left inconsistent. */
+        if (wm->windows[i].used && wm->windows[i].visible &&
+            !wm->windows[i].minimized)
             order[n++] = i;
     }
     for (i = 1; i < n; ++i) {

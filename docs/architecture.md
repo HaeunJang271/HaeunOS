@@ -21,7 +21,8 @@ Each boundary uses versioned formats or explicit register contracts.
 
 - Fixed 32-bit instruction words; arithmetic wraps modulo 2^32.
 - Interpreter implements ISA v4 privilege/traps and MMU v1 + TLB/`SFENCE`.
-- Release 1.0 preserves M14–M17 contracts: AS≤3, app≤4KiB, FB 64×32, shared KBD FIFO, user fault → ZOMBIE.
+- Process-v1 caps preserved: AS≤3, app≤4KiB, user fault → ZOMBIE.
+- Default GUI FB is **320×180** @ `0x00200000` (see [graphics-api.md](graphics-api.md)); shared KBD FIFO remains for legacy demos alongside per-pid `EVENT_POLL`.
 
 ## Release pointers
 

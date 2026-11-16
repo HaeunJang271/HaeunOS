@@ -45,4 +45,4 @@ UART `app_putc` remains separate (console).
 
 - Max string: `HAEUN_GFX_UI_TEXT_MAX` = 48 (including NUL)
 - No Hangul / proportional fonts
-- Default FB 64×32 ≈ 8×4 glyphs of 8×8
+- Default desktop FB **320×180** (~40×22 glyphs of 8×8); older notes used 64×32

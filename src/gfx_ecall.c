@@ -38,7 +38,7 @@ static int deny_foreign(haeun_gfx_wm *wm, haeun_vm *vm, int id) {
 bool haeun_gfx_ecall_io(haeun_vm *vm, void *context) {
     haeun_gfx_ecall_ctx *ctx = (haeun_gfx_ecall_ctx *)context;
     uint32_t number;
-    uint32_t a0, a1, a2, a3, a4;
+    uint32_t a0, a1, a2, a3, a4, a5;
     int id = -1;
     int pid;
     haeun_gfx_result r;
@@ -52,6 +52,7 @@ bool haeun_gfx_ecall_io(haeun_vm *vm, void *context) {
     a2 = haeun_rf_read(vm, 4u);
     a3 = haeun_rf_read(vm, 5u);
     a4 = haeun_rf_read(vm, 6u);
+    a5 = haeun_rf_read(vm, 7u);
     switch (number) {
     case HAEUN_SYS_WIN_CREATE:
         if (!haeun_gfx_fb_ready(ctx->gfx)) {
@@ -111,6 +112,14 @@ bool haeun_gfx_ecall_io(haeun_vm *vm, void *context) {
         r = haeun_gfx_wm_fill(ctx->wm, (int)a0, a1);
         haeun_rf_write(vm, 1u, gfx_to_ret(r, 0u));
         return true;
+    case HAEUN_SYS_WIN_FILL_RECT:
+        if (deny_foreign(ctx->wm, vm, (int)a0)) {
+            haeun_rf_write(vm, 1u, 0xffffffffu);
+            return true;
+        }
+        r = haeun_gfx_wm_fill_rect(ctx->wm, (int)a0, a1, a2, a3, a4, a5);
+        haeun_rf_write(vm, 1u, gfx_to_ret(r, 0u));
+        return true;
     case HAEUN_SYS_WIN_PIXEL:
         if (deny_foreign(ctx->wm, vm, (int)a0)) {
             haeun_rf_write(vm, 1u, 0xffffffffu);
@@ -125,6 +134,12 @@ bool haeun_gfx_ecall_io(haeun_vm *vm, void *context) {
             return true;
         }
         r = haeun_gfx_wm_raise(ctx->wm, (int)a0);
+        /* M21: owner raise also claims focus so desktop regains input after apps. */
+        if (r == HAEUN_GFX_OK) {
+            (void)haeun_gfx_wm_set_focus(ctx->wm, (int)a0);
+            if (ctx->evt != NULL)
+                haeun_evt_on_focus(ctx->evt, (int)a0);
+        }
         haeun_rf_write(vm, 1u, gfx_to_ret(r, 0u));
         return true;
     case HAEUN_SYS_GFX_COMPOSE:

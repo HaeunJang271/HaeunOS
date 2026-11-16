@@ -29,8 +29,18 @@ def main(argv: list[str]) -> int:
             [ROOT / "userland" / "libapp.s"],
         )
     )
+    # filemgr waits on EVENT_POLL for Esc; feed one via scripted input.
     r = subprocess.run(
-        [str(vm), str(runner), "--app", str(hxf), "--gui", "--desktop"],
+        [
+            str(vm),
+            str(runner),
+            "--app",
+            str(hxf),
+            "--gui",
+            "--desktop",
+            "--input-script",
+            "solo-esc",
+        ],
         capture_output=True,
         text=True,
         check=False,

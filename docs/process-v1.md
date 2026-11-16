@@ -65,10 +65,17 @@ Round-Robin over `READY`/`RUNNING` processes. Timer quantum is 32 ticks (one-sho
 | 8 | `SLEEP` | `r2` ticks | Block until `COUNT_LO + ticks` |
 | 9 | `GETPID` | — | Return `pid` |
 | 10 | `YIELD` | — | Cooperative RR |
+| 52 | `TRYWAIT` | — | Non-blocking: reap one own `ZOMBIE` or return `-1` (M24.3 init idle) |
 
-## Resource recovery
+## Resource recovery (dual-stage)
 
-`WAIT` moves a reaped child from `ZOMBIE` to `FREE` and clears its fd table. `EXIT` does not free the slot until reaped (zombie semantics).
+Host `reap_pid` (ECALL mux / fault) destroys process-owned windows, evt queues, IPC, services, FDs, sockets, and scrubs AS **before** the guest PCB becomes or remains `ZOMBIE`.
+
+Guest `EXIT`/`fault_exit` mark `ZOMBIE`, call `orphan_reparent` (children’s `ppid` → PCB0 init pid), and `wake_wait`. `WAIT` moves a reaped child from `ZOMBIE` to `FREE` and clears its fd table.
+
+Desktop idle calls `TRYWAIT` then `YIELD` so adopted/exited children become `FREE` without blocking. `APP_SPAWN` orphan memset remains a fallback for unused-slot `ZOMBIE` PCBs.
+
+Idempotent guest `EXIT`: if already `ZOMBIE`, only reschedule (mirrors `fault_exit`).
 
 ## Tests
 

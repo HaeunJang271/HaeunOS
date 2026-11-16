@@ -2,9 +2,11 @@
 .isa 4
 .global sys_fork
 .global sys_wait
+.global sys_trywait
 .global advance_epc
 .global restore_ret
 .global pick_next
+.global fork_user_mem
 
 sys_fork:
     jal r15, advance_epc
@@ -34,8 +36,8 @@ p_np:
     sw r2, 0(r1)
     lw r1, 4(r8)
     sw r1, 8(r7)
-    addi r1, r0, 1
-    sw r1, 0(r7)
+    # Stay FREE until memory clone completes (no schedulable partial child).
+    sw r0, 0(r7)
     lw r1, 12(r8)
     sw r1, 12(r7)
     sw r0, 16(r7)
@@ -55,6 +57,10 @@ fk_copy:
     addi r3, r3, 4
     jal r0, fk_copy
 fk_cdone:
+    # M25.3: clone user code + ustack; relocate SP into child VA.
+    jal r15, fork_user_mem
+    addi r1, r0, 1
+    sw r1, 0(r7)
     sw r0, 64(r7)
     lw r1, 4(r7)
     sw r1, 64(r8)
@@ -178,10 +184,45 @@ wt_next:
     addi r7, r7, 0x100
     addi r6, r6, 1
     jal r0, wt_scan
+# Block without advancing EPC so a wake re-enters WAIT and rescans zombies.
 wt_block:
     sw r0, 24(r8)
     addi r1, r0, 4
     sw r1, 0(r8)
-    jal r15, advance_epc
     jal r15, pick_next
+    jal r0, restore_ret
+
+# Non-blocking WAIT: reap one own ZOMBIE or return -1. Does not change WAIT.
+sys_trywait:
+    jal r1, p_pb3
+    .word 0x0000A000
+p_pb3:
+    lw r7, 0(r1)
+    addi r6, r0, 0
+    lw r9, 4(r8)
+tw_scan:
+    addi r1, r0, 4
+    beq r6, r1, tw_none
+    lw r1, 0(r7)
+    addi r2, r0, 5
+    bne r1, r2, tw_next
+    lw r1, 8(r7)
+    bne r1, r9, tw_next
+    lw r1, 16(r7)
+    sw r1, 64(r8)
+    sw r0, 0(r7)
+    sw r0, 44(r7)
+    sw r0, 48(r7)
+    sw r0, 52(r7)
+    sw r0, 56(r7)
+    jal r15, advance_epc
+    jal r0, restore_ret
+tw_next:
+    addi r7, r7, 0x100
+    addi r6, r6, 1
+    jal r0, tw_scan
+tw_none:
+    addi r1, r0, -1
+    sw r1, 64(r8)
+    jal r15, advance_epc
     jal r0, restore_ret

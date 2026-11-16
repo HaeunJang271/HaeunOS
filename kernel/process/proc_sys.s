@@ -17,13 +17,20 @@
 .global pick_next
 .global wake_all
 .global wake_wait
+.global orphan_reparent
 
 sys_exit:
+    # Idempotent: already ZOMBIE → schedule only (mirror fault_exit).
+    lw r1, 0(r8)
+    addi r2, r0, 5
+    beq r1, r2, sy_ex_sched
     lw r1, 68(r8)
     sw r1, 16(r8)
     addi r1, r0, 5
     sw r1, 0(r8)
+    jal r15, orphan_reparent
     jal r15, wake_wait
+sy_ex_sched:
     jal r15, pick_next
     bne r1, r0, sy_ex_ok
     # No READY: expire SLEEP deadlines once, then retry (minimal idle assist).
@@ -55,6 +62,7 @@ p_fdiag:
     sw r1, 12(r2)
     addi r1, r0, 5
     sw r1, 0(r8)
+    jal r15, orphan_reparent
     jal r15, wake_wait
 sf_sched:
     jal r15, pick_next

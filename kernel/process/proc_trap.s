@@ -14,6 +14,7 @@
 .global sys_fork
 .global sys_exec
 .global sys_wait
+.global sys_trywait
 .global sys_sleep
 .global sys_getpid
 .global sys_yield
@@ -107,6 +108,8 @@ do_syscall:
     beq r1, r2, sys_getpid
     addi r2, r0, 10
     beq r1, r2, sys_yield
+    addi r2, r0, 52
+    beq r1, r2, sys_trywait
     addi r1, r0, -1
     sw r1, 64(r8)
     jal r15, advance_epc

@@ -12,13 +12,18 @@ enum {
     PCB_STRIDE = 0x100u,
     PCB_NEXT_PID = 0x0000A404u,
     L0_PTE_USER = 0x420u,
+    L0_PTE_HEAP = 0x424u,
     PTE_FLAGS = 0x1bu,
+    PTE_HEAP_FLAGS = 0x17u,
     STATE_FREE = 0,
-    STATE_READY = 1
+    STATE_READY = 1,
+    STATE_ZOMBIE = 5
 };
 
 static const uint32_t k_code_pa[HAEUN_APP_SLOTS] = {
     HAEUN_APP_SLOT_CODE_PA0, HAEUN_APP_SLOT_CODE_PA1, HAEUN_APP_SLOT_CODE_PA2};
+static const uint32_t k_heap_pa[HAEUN_APP_SLOTS] = {
+    HAEUN_APP_SLOT_HEAP_PA0, HAEUN_APP_SLOT_HEAP_PA1, HAEUN_APP_SLOT_HEAP_PA2};
 static const uint32_t k_l0[HAEUN_APP_SLOTS] = {0x00003000u, 0x00007000u,
                                               0x00009000u};
 static const uint32_t k_ptbr[HAEUN_APP_SLOTS] = {0x00002001u, 0x00006001u,
@@ -55,6 +60,13 @@ uint32_t haeun_app_slot_code_pa(int slot) {
     return k_code_pa[slot];
 }
 
+/** Returns the fixed user-heap PA for an AS slot, or 0 if out of range. */
+uint32_t haeun_app_slot_heap_pa(int slot) {
+    if (slot < 0 || slot >= HAEUN_APP_SLOTS)
+        return 0u;
+    return k_heap_pa[slot];
+}
+
 /** Reads the guest L0 user-code PTE word for a slot (0 if invalid). */
 uint32_t haeun_app_slot_user_pte(const haeun_app_env *env, int slot) {
     if (env == NULL || env->vm == NULL || env->vm->ram == NULL || slot < 0 ||
@@ -74,6 +86,8 @@ static void scrub_slot(haeun_app_env *env, int slot) {
         memset(ram + k_code_pa[slot], 0, HAEUN_APP_CODE_MAX);
     if ((uint64_t)k_ustack_page[slot] + 4096u <= env->vm->ram_size)
         memset(ram + k_ustack_page[slot], 0, 4096u);
+    if ((uint64_t)k_heap_pa[slot] + HAEUN_APP_HEAP_SIZE <= env->vm->ram_size)
+        memset(ram + k_heap_pa[slot], 0, HAEUN_APP_HEAP_SIZE);
     if ((uint64_t)k_l0[slot] + L0_PTE_USER + 4u <= env->vm->ram_size)
         wr32(ram + k_l0[slot] + L0_PTE_USER, 0u);
     haeun_tlb_flush(env->vm);
@@ -196,23 +210,53 @@ haeun_app_result haeun_app_destroy_windows(haeun_gfx_wm *wm, uint32_t pid) {
 
 /**
  * Marks a slot free when its pid has exited; destroys windows and scrubs AS.
+ * SPAWN: clears runs[] and scrubs slots 1–2.
+ * FORK-only: scrubs slots 1–2 whose PCB.pid matches while user PTE is live
+ * (idempotent — second reap after PTE clear returns NOENT; ZOMBIE PCB.pid
+ * may remain until WAIT/SPAWN reclaim).
+ * Slot 0 (init/desktop) is never scrubbed.
  */
 haeun_app_result haeun_app_reap(haeun_app_env *env, uint32_t pid) {
     int i;
+    int had_run = 0;
+    int run_cleared = 0;
+    int fork_only_scrub = 0;
     if (env == NULL || pid == 0u)
         return HAEUN_APP_BAD_ARGUMENT;
     if (env->wm != NULL)
         (void)haeun_app_destroy_windows(env->wm, pid);
     for (i = 0; i < HAEUN_APP_SLOTS; ++i) {
+        if (env->runs[i].used && env->runs[i].pid == pid)
+            had_run = 1;
+    }
+    if (env->vm != NULL && env->vm->ram != NULL) {
+        for (i = 1; i < HAEUN_APP_SLOTS; ++i) {
+            uint8_t *pcb =
+                env->vm->ram + PCB_BASE + (uint32_t)i * PCB_STRIDE;
+            if (rd32(pcb + 4u) != pid)
+                continue;
+            if (had_run) {
+                scrub_slot(env, i);
+            } else if (haeun_app_slot_user_pte(env, i) != 0u) {
+                /* First FORK-only reap; PTE==0 means already scrubbed. */
+                scrub_slot(env, i);
+                fork_only_scrub = 1;
+            }
+        }
+    }
+    for (i = 0; i < HAEUN_APP_SLOTS; ++i) {
         if (env->runs[i].used && env->runs[i].pid == pid) {
-            scrub_slot(env, i);
+            if (i >= 1)
+                scrub_slot(env, i);
             env->runs[i].used = 0;
             env->runs[i].pid = 0u;
             env->runs[i].app_index = -1;
             env->runs[i].slot = 0;
-            return HAEUN_APP_OK;
+            run_cleared = 1;
         }
     }
+    if (run_cleared || fork_only_scrub)
+        return HAEUN_APP_OK;
     return HAEUN_APP_NOENT;
 }
 
@@ -241,21 +285,33 @@ haeun_app_result haeun_app_spawn(haeun_app_env *env, int index, uint32_t *pid) {
                      sizeof(code), &clen, &entry) != 0)
         return HAEUN_APP_INVALID;
     ram = env->vm->ram;
+    /* Desktop may let apps EXIT without WAIT; reclaim orphan zombies so the
+     * next spawn is not stuck on a ZOMBIE PCB with a cleared run slot. */
+    for (slot = 1; slot < HAEUN_APP_SLOTS; ++slot) {
+        uint8_t *opcb = ram + PCB_BASE + (uint32_t)slot * PCB_STRIDE;
+        if (!env->runs[slot].used && rd32(opcb) == STATE_ZOMBIE)
+            memset(opcb, 0, PCB_STRIDE);
+    }
     for (slot = 1; slot < HAEUN_APP_SLOTS; ++slot) {
         if (!env->runs[slot].used &&
             rd32(ram + PCB_BASE + (uint32_t)slot * PCB_STRIDE) == STATE_FREE)
             break;
     }
-    if (slot >= HAEUN_APP_SLOTS)
+    if (slot >= HAEUN_APP_SLOTS) {
+        (void)fprintf(stderr, "app-env: spawn NOSPC index=%d\n", index);
         return HAEUN_APP_NOSPC;
+    }
     if ((uint64_t)k_code_pa[slot] + HAEUN_APP_CODE_MAX > env->vm->ram_size)
         return HAEUN_APP_BAD_ARGUMENT;
     /* Mutate guest state only after validation; wipe prior code/stack first. */
     memset(ram + k_code_pa[slot], 0, HAEUN_APP_CODE_MAX);
     if ((uint64_t)k_ustack_page[slot] + 4096u <= env->vm->ram_size)
         memset(ram + k_ustack_page[slot], 0, 4096u);
+    if ((uint64_t)k_heap_pa[slot] + HAEUN_APP_HEAP_SIZE <= env->vm->ram_size)
+        memset(ram + k_heap_pa[slot], 0, HAEUN_APP_HEAP_SIZE);
     memcpy(ram + k_code_pa[slot], code, clen);
     wr32(ram + k_l0[slot] + L0_PTE_USER, k_code_pa[slot] | PTE_FLAGS);
+    wr32(ram + k_l0[slot] + L0_PTE_HEAP, k_heap_pa[slot] | PTE_HEAP_FLAGS);
     haeun_tlb_flush(env->vm);
     new_pid = rd32(ram + PCB_NEXT_PID);
     if (new_pid < 2u)

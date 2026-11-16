@@ -41,7 +41,7 @@
 
 Wrappers: `userland/libfs.s`. App: `userland/app_filemgr.s` (+ `libapp.s`).
 
-## GUI design (64×32)
+## GUI design (historical 64×32 smoke; current default FB is 320×180)
 
 Window title “File”, draws first `FS_READDIR` entry, creates/reads/unlinks/recreates `note`, paints via `WIN_DRAW_TEXT`. Full interactive editor is out of scope for this smoke surface; CRUD paths are exercised end-to-end.
 

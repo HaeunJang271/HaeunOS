@@ -72,11 +72,19 @@ p_s0:
     # user stack at VA 0x00113000 -> L0 index 0x113
     sw r10, 0x44c(r9)
     jal r15, fill_k
+    # M25.4: unmapped guard page below stack (VA 0x112000, L0+0x448)
+    sw r0, 0x448(r9)
     jal r1, p_uca
     .word 0x0010801b
 p_uca:
     lw r1, 0(r1)
     sw r1, 0x420(r9)
+    # M25.6: user heap VA 0x109000 -> PA 0x10E000 U|RW (no X)
+    jal r1, p_h0
+    .word 0x0010E017
+p_h0:
+    lw r1, 0(r1)
+    sw r1, 0x424(r9)
     jal r1, p_mmio
     .word 0x00004001
 p_mmio:
@@ -118,12 +126,21 @@ p_l01:
     .word 0x00007000
 p_l0b1:
     lw r9, 0(r1)
+    jal r15, fill_u
+    # User stack after fill_k so U|RW wins over identity RW alias.
     jal r1, p_s1
     .word 0x00114017
 p_s1:
     lw r10, 0(r1)
     sw r10, 0x450(r9)
-    jal r15, fill_u
+    # M25.4: unmapped guard below stack (VA 0x113000, L0+0x44c)
+    sw r0, 0x44c(r9)
+    # M25.6: heap VA 0x109000 -> PA 0x10F000 U|RW
+    jal r1, p_h1
+    .word 0x0010F017
+p_h1:
+    lw r1, 0(r1)
+    sw r1, 0x424(r9)
     jal r1, p_m1
     .word 0x00004001
 p_m1:
@@ -146,12 +163,25 @@ p_l02:
     .word 0x00009000
 p_l0b2:
     lw r9, 0(r1)
+    jal r15, fill_u
     jal r1, p_s2
     .word 0x00115017
 p_s2:
     lw r10, 0(r1)
     sw r10, 0x454(r9)
-    jal r15, fill_u
+    # M25.4: guard VA 0x114000 — kernel RW identity (no U) so FORK memcpy
+    # to foreign ustack PA still works; user access faults (missing U).
+    jal r1, p_g2
+    .word 0x00114007
+p_g2:
+    lw r1, 0(r1)
+    sw r1, 0x450(r9)
+    # M25.6: heap VA 0x109000 -> PA 0x110000 U|RW
+    jal r1, p_h2
+    .word 0x00110017
+p_h2:
+    lw r1, 0(r1)
+    sw r1, 0x424(r9)
     jal r1, p_m2
     .word 0x00004001
 p_m2:
@@ -234,6 +264,75 @@ p_ks1:
 p_ks2:
     lw r1, 0(r1)
     sw r1, 0x498(r9)
+    # M25.2: identity RW (no U) for FORK memcpy + foreign L0 PTE updates.
+    # Do not touch 0x420/0x44c (this slot's user code/stack PTEs).
+    jal r1, p_c1
+    .word 0x0010C007
+p_c1:
+    lw r1, 0(r1)
+    sw r1, 0x430(r9)
+    jal r1, p_c2
+    .word 0x0010D007
+p_c2:
+    lw r1, 0(r1)
+    sw r1, 0x434(r9)
+    # M25.6: identity RW (no U) for foreign heap PAs during FORK memcpy.
+    # Do not touch 0x424 (user heap VA PTE).
+    jal r1, p_hp0
+    .word 0x0010E007
+p_hp0:
+    lw r1, 0(r1)
+    sw r1, 0x438(r9)
+    jal r1, p_hp1
+    .word 0x0010F007
+p_hp1:
+    lw r1, 0(r1)
+    sw r1, 0x43c(r9)
+    jal r1, p_hp2
+    .word 0x00110007
+p_hp2:
+    lw r1, 0(r1)
+    sw r1, 0x440(r9)
+    jal r1, p_us1
+    .word 0x00114007
+p_us1:
+    lw r1, 0(r1)
+    sw r1, 0x450(r9)
+    jal r1, p_us2
+    .word 0x00115007
+p_us2:
+    lw r1, 0(r1)
+    sw r1, 0x454(r9)
+    jal r1, p_pt20
+    .word 0x00002007
+p_pt20:
+    lw r1, 0(r1)
+    sw r1, 0x08(r9)
+    jal r1, p_pt30
+    .word 0x00003007
+p_pt30:
+    lw r1, 0(r1)
+    sw r1, 0x0c(r9)
+    jal r1, p_pt60
+    .word 0x00006007
+p_pt60:
+    lw r1, 0(r1)
+    sw r1, 0x18(r9)
+    jal r1, p_pt70
+    .word 0x00007007
+p_pt70:
+    lw r1, 0(r1)
+    sw r1, 0x1c(r9)
+    jal r1, p_pt80
+    .word 0x00008007
+p_pt80:
+    lw r1, 0(r1)
+    sw r1, 0x20(r9)
+    jal r1, p_pt90
+    .word 0x00009007
+p_pt90:
+    lw r1, 0(r1)
+    sw r1, 0x24(r9)
     jalr r0, r10, 0
 
 init_pcb0:

@@ -1,6 +1,6 @@
 #include "haeun/gfx.h"
 
-/* 8×8 bitmaps: bit7 = leftmost pixel. Index 0 = space (ASCII 32). */
+/* 8×8 bitmaps: bit0 = leftmost pixel. Index 0 = space (ASCII 32). */
 static const uint8_t FONT8[95][8] = {
     {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, /*   */
     {0x18, 0x3C, 0x3C, 0x18, 0x18, 0x00, 0x18, 0x00}, /* ! */
@@ -127,7 +127,7 @@ haeun_gfx_result haeun_gfx_draw_char(haeun_gfx *gfx, uint32_t x, uint32_t y,
     for (row = 0u; row < 8u; ++row) {
         uint8_t bits = rows[row];
         for (col = 0u; col < 8u; ++col) {
-            uint32_t px = (bits & (uint8_t)(0x80u >> col)) != 0u ? fg : bg;
+            uint32_t px = (bits & (uint8_t)(1u << col)) != 0u ? fg : bg;
             haeun_gfx_result r = haeun_gfx_put_pixel(gfx, x + col, y + row, px);
             if (r == HAEUN_GFX_OOB) continue;
             if (r != HAEUN_GFX_OK) return r;

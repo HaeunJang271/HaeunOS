@@ -70,7 +70,11 @@ enum {
     HAEUN_SYS_FS_UNLINK = 48,
     HAEUN_SYS_FS_STAT = 49,
     HAEUN_SYS_FS_SEEK = 50,
-    HAEUN_SYS_MAX = 50
+    /* M22.1.3+: host rect fill (r2=id r3=x r4=y r5=w r6=h r7=rgba) */
+    HAEUN_SYS_WIN_FILL_RECT = 51,
+    /* M24.3: non-blocking reap of one ZOMBIE child (init idle reaper) */
+    HAEUN_SYS_TRYWAIT = 52,
+    HAEUN_SYS_MAX = 52
 };
 
 /**

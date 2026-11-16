@@ -24,6 +24,8 @@ static int test_dispatch_syscall_numbers(void) {
     req.privilege = HAEUN_PRIV_USER;
     req.number = HAEUN_SYS_YIELD;
     CHECK(haeun_sec_dispatch(&req) == HAEUN_SEC_OK);
+    req.number = HAEUN_SYS_TRYWAIT;
+    CHECK(haeun_sec_dispatch(&req) == HAEUN_SEC_OK);
     req.number = (uint32_t)HAEUN_SYS_MAX + 1u;
     CHECK(haeun_sec_dispatch(&req) == HAEUN_SEC_DENIED);
     return 0;

@@ -56,7 +56,7 @@ haeun_gfx_result haeun_gfx_wm_set_title(haeun_gfx_wm *wm, int id,
 }
 
 /**
- * Minimizes a window and drops keyboard focus if it held it.
+ * Minimizes a window and recovers focus to the next eligible window.
  */
 haeun_gfx_result haeun_gfx_wm_minimize(haeun_gfx_wm *wm, int id) {
     haeun_gfx_window *win = slot(wm, id);
@@ -66,9 +66,7 @@ haeun_gfx_result haeun_gfx_wm_minimize(haeun_gfx_wm *wm, int id) {
     }
     win->minimized = 1;
     win->visible = 0;
-    if (wm->focus_id == id)
-        wm->focus_id = -1;
-    return HAEUN_GFX_OK;
+    return haeun_gfx_wm_focus_recover(wm);
 }
 
 /**

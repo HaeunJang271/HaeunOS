@@ -36,6 +36,12 @@ col:
     ecall
     cmplt r3, r1, r0
     bne r3, r0, fail
+    sw r1, -20(r13)
+    jal r15, yield_burst
+    addi r1, r0, 40
+    addi r2, r0, 1
+    lw r3, -20(r13)
+    ecall
     jal r15, yield_burst
     addi r1, r0, 7
     ecall
@@ -46,6 +52,12 @@ col:
     ecall
     cmplt r3, r1, r0
     bne r3, r0, fail
+    sw r1, -20(r13)
+    jal r15, yield_burst
+    addi r1, r0, 40
+    addi r2, r0, 1
+    lw r3, -20(r13)
+    ecall
     jal r15, yield_burst
     addi r1, r0, 7
     ecall
@@ -56,6 +68,12 @@ col:
     ecall
     cmplt r3, r1, r0
     bne r3, r0, fail
+    sw r1, -20(r13)
+    jal r15, yield_burst
+    addi r1, r0, 40
+    addi r2, r0, 1
+    lw r3, -20(r13)
+    ecall
     jal r15, yield_burst
     addi r1, r0, 7
     ecall

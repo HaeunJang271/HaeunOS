@@ -18,7 +18,8 @@
 ## 3. Standard Library — IMPLEMENTED
 
 `userland/libapp.s` / packaged `lib/libapp.s`: exit, getpid, yield, wait, win_*, compose, count, spawn, putc, open/read/write/close.  
-**Not exposed:** WIN_DRAW_TEXT, POLL_EVENT.
+**M19 baseline:** WIN_DRAW_TEXT / EVENT_POLL were not yet on the public SDK surface.  
+**Current:** available via `libapp.s` — see [sdk/docs/06-graphics-api.md](../sdk/docs/06-graphics-api.md) and [graphics-api.md](graphics-api.md).
 
 ## 4. HXF build pipeline — IMPLEMENTED
 
