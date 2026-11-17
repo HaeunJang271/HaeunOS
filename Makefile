@@ -37,7 +37,11 @@ HFS_SRCS := src/hfs_io.c src/hfs_mkfs.c src/hfs_ops.c src/hfs_fsck.c src/proc_hf
 GFX_SRCS := src/gfx_fb.c src/gfx_pixel.c src/gfx_font.c src/gfx_wm.c \
 	src/gfx_wm_fill.c src/gfx_wm_state.c src/gfx_comp.c src/gfx_ui.c \
 	src/gfx_desk.c src/gfx_ecall.c src/gfx_chrome.c src/gfx_chrome_ptr.c \
-	src/guest_pcb.c src/evt.c
+	src/guest_pcb.c src/telem_inspect.c src/evt.c \
+	src/pval_snapshot.c src/pval_invariants.c src/pval_timestamp.c \
+	src/pval_compat.c src/pval_report.c src/pval_validate.c \
+	src/reconfig_fi.c src/reconfig_txn.c src/reconfig_report.c \
+	src/reconfig_eval.c src/reconfig_cli.c
 NET_SRCS := src/net_eth.c src/net_arp.c src/net_ipv4.c src/net_udp.c src/net_tcp.c src/net_dns.c src/net_sock.c src/net_drv.c
 NET_SOCK_ECALL_SRC := src/net_sock_ecall.c
 ifeq ($(OS),Windows_NT)
@@ -74,7 +78,11 @@ VM_HDRS := include/haeun/vm.h include/haeun/board_mmio.h include/haeun/board_ext
 	include/haeun/disk_persist.h include/haeun/fb_dump.h include/haeun/ecall_mux.h \
 	include/haeun/vm_gui_host.h include/haeun/vm_net_host.h include/haeun/net_backend.h \
 	include/haeun/vm_input_host.h include/haeun/vm_viewer.h include/haeun/fb_view.h \
-	include/haeun/guest_pcb.h include/haeun/app_env.h
+	include/haeun/guest_pcb.h include/haeun/telem_inspect.h include/haeun/app_env.h \
+	include/haeun/pval_types.h include/haeun/pval_snapshot.h include/haeun/pval_invariants.h \
+	include/haeun/pval_timestamp.h include/haeun/pval_compat.h include/haeun/pval_report.h \
+	include/haeun/pval_validate.h include/haeun/reconfig.h include/haeun/reconfig_cli.h \
+	include/haeun/reconfig_eval.h
 $(VM_BIN): $(VM_SRCS) $(VM_HDRS) | $(BUILD)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(VM_SRCS) -o $@ $(VIEWER_LIBS) $(NET_BACKEND_LIBS)
 
@@ -363,7 +371,74 @@ isa-opcodes-check:
 toolchain-test: $(VM_BIN) isa-opcodes-check
 	$(PYTHON) tests/toolchain_tests.py $(VM_BIN)
 
-test: $(VM_TEST_BIN) $(HXF_TEST_BIN) $(BOOTINFO_TEST_BIN) $(HFW_TEST_BIN) $(DEVICE_TEST_BIN) $(ISA4_TEST_BIN) $(MMU_TEST_BIN) $(PT_TEST_BIN) $(KERNEL_PAGE_TEST_BIN) $(TLB_TEST_BIN) $(CPU_MODULE_TEST_BIN) $(OPCODE_MATRIX_TEST_BIN) $(BOARD_EXTRA_TEST_BIN) $(FB_VIEW_TEST_BIN) $(HFS_TEST_BIN) $(PROC_HFS_TEST_BIN) $(PROC_ECALL_IO_TEST_BIN) $(GFX_TEST_BIN) $(GFX_WM_TEST_BIN) $(M23_3_STATE_TEST_BIN) $(M23_4_RES_TEST_BIN) $(M24_2_EXIT_TEST_BIN) $(M24_2_CAP_TEST_BIN) $(M24_2_FAULT_RES_TEST_BIN) $(M24_4_RES_TEST_BIN) $(M25_2_OWN_TEST_BIN) $(M25_2_SCRUB_TEST_BIN) $(M25_6_HEAP_HOST_BIN) $(GFX_UI_TEST_BIN) $(GFX_DESK_TEST_BIN) $(GFX_CHROME_TEST_BIN) $(GFX_ECALL_TEST_BIN) $(NET_TEST_BIN) $(NET_ICMP_TEST_BIN) $(NET_UDP_TEST_BIN) $(NET_TCP_TEST_BIN) $(NET_DNS_TEST_BIN) $(NET_SOCK_TEST_BIN) $(NET_SOCK_ECALL_TEST_BIN) $(SEC_TEST_BIN) $(SEC_DISPATCH_TEST_BIN) $(SEC_ECALL_TEST_BIN) $(SEC_BOOT_TEST_BIN) $(M7_TEST_BIN) $(M8_PCB_PROBE_BIN) $(M9_NET_PROBE_BIN) $(M13_NET_BE_TEST_BIN) $(M14_APP_TEST_BIN) $(M15_ISO_TEST_BIN) $(M16_REL_TEST_BIN) $(M17_FAULT_TEST_BIN) $(M20_UNIT_TEST_BIN) $(M20_RES_TEST_BIN) $(M20_INPUT_TEST_BIN) $(M20_IPC_TEST_BIN) $(M20_TEXT_TEST_BIN) $(M20_WIN_TEST_BIN) $(M20_LAUNCH_TEST_BIN) $(M20_SM_TEST_BIN) $(M20_FILE_TEST_BIN) $(M20_INTEG_TEST_BIN) $(MKFS_BIN) $(FSCK_BIN) $(VM_BIN) toolchain-test
+R11_SCHED_BIN := $(BUILD)/r11-sched-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R11_TIMER_BIN := $(BUILD)/r11-timer-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R12_TELEM_BIN := $(BUILD)/r12-telem-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R13_TELEM_BIN := $(BUILD)/r13-telem-inspect-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R20_POLICY_BIN := $(BUILD)/r20-policy-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R21_DET_BIN := $(BUILD)/r21-policy-determinism-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R21_GUEST_BIN := $(BUILD)/r21-policy-guest-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+EVAL_SRCS := src/eval_stats.c src/eval_metrics.c src/eval_fairness.c src/eval_cost.c \
+	src/eval_workload.c src/eval_runner.c src/eval_report.c src/eval_compare.c
+R22_UNIT_BIN := $(BUILD)/r22-eval-unit-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R22_RUN_BIN := $(BUILD)/r22-eval-runner-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+HAEUN_EVAL_BIN := $(BUILD)/haeun-eval$(if $(filter Windows_NT,$(OS)),.exe,)
+R30_UNIT_BIN := $(BUILD)/r30-fcfs-unit-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R30_GUEST_BIN := $(BUILD)/r30-fcfs-guest-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+PVAL_SRCS := src/pval_snapshot.c src/pval_invariants.c src/pval_timestamp.c \
+	src/pval_compat.c src/pval_report.c src/pval_validate.c
+RECFG_SRCS := src/reconfig_fi.c src/reconfig_txn.c src/reconfig_report.c \
+	src/reconfig_eval.c src/reconfig_cli.c
+R31_UNIT_BIN := $(BUILD)/r31-pval-unit-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R31_GUEST_BIN := $(BUILD)/r31-pval-guest-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R32_UNIT_BIN := $(BUILD)/r32-reconfig-unit-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R32_GUEST_BIN := $(BUILD)/r32-reconfig-guest-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+$(R11_SCHED_BIN): tests/r11_sched_tests.c src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r11_sched_tests.c src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R11_TIMER_BIN): tests/r11_timer_tests.c src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r11_timer_tests.c src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R12_TELEM_BIN): tests/r12_telem_tests.c src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r12_telem_tests.c src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R13_TELEM_BIN): tests/r13_telem_inspect_tests.c src/telem_inspect.c src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r13_telem_inspect_tests.c src/telem_inspect.c src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R20_POLICY_BIN): tests/r20_policy_tests.c src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r20_policy_tests.c src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R21_DET_BIN): tests/r21_policy_determinism_tests.c src/policy_verify.c src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r21_policy_determinism_tests.c src/policy_verify.c src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R21_GUEST_BIN): tests/r21_policy_guest_tests.c src/policy_verify.c src/telem_inspect.c src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r21_policy_guest_tests.c src/policy_verify.c src/telem_inspect.c src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+EVAL_HOST_SRCS := src/eval_stats.c src/eval_metrics.c src/eval_fairness.c src/eval_cost.c \
+	src/eval_workload.c src/eval_report.c src/eval_compare.c
+$(R22_UNIT_BIN): tests/r22_eval_unit_tests.c $(EVAL_HOST_SRCS) src/telem_inspect.c | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r22_eval_unit_tests.c $(EVAL_HOST_SRCS) src/telem_inspect.c -o $@
+$(R22_RUN_BIN): tests/r22_eval_runner_tests.c $(EVAL_SRCS) src/telem_inspect.c src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r22_eval_runner_tests.c $(EVAL_SRCS) src/telem_inspect.c src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(HAEUN_EVAL_BIN): tools/haeun_eval.c $(EVAL_SRCS) src/telem_inspect.c src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tools/haeun_eval.c $(EVAL_SRCS) src/telem_inspect.c src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(BUILD)/r11-images.stamp: tools/build_r11.py tools/build_process_image.py $(wildcard userland/r11_*.s) $(wildcard kernel/process/*.s) | $(BUILD)
+	$(PYTHON) tools/build_r11.py $(BUILD)
+$(BUILD)/r12-images.stamp: tools/build_r12.py tools/build_process_image.py $(wildcard userland/r12_*.s) $(wildcard kernel/process/*.s) | $(BUILD)
+	$(PYTHON) tools/build_r12.py $(BUILD)
+$(BUILD)/r21-images.stamp: tools/build_r21.py tools/build_process_image.py $(wildcard kernel/process/*.s) | $(BUILD)
+	$(PYTHON) tools/build_r21.py $(BUILD)
+$(BUILD)/r22-images.stamp: tools/build_r22.py tools/build_r12.py tools/build_process_image.py $(wildcard userland/r12_*.s) userland/r22_burst.s $(wildcard kernel/process/*.s) | $(BUILD)
+	$(PYTHON) tools/build_r22.py $(BUILD)
+$(R30_UNIT_BIN): tests/r30_fcfs_unit_tests.c src/policy_verify.c | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r30_fcfs_unit_tests.c src/policy_verify.c -o $@
+$(R30_GUEST_BIN): tests/r30_fcfs_guest_tests.c $(EVAL_SRCS) src/policy_verify.c src/telem_inspect.c src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r30_fcfs_guest_tests.c $(EVAL_SRCS) src/policy_verify.c src/telem_inspect.c src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(BUILD)/r30-images.stamp: tools/build_r30.py tools/build_r12.py tools/build_process_image.py $(wildcard userland/r12_*.s) userland/r22_burst.s $(wildcard kernel/process/*.s) | $(BUILD)
+	$(PYTHON) tools/build_r30.py $(BUILD)
+$(R31_UNIT_BIN): tests/r31_pval_unit_tests.c $(PVAL_SRCS) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r31_pval_unit_tests.c $(PVAL_SRCS) -o $@
+$(R31_GUEST_BIN): tests/r31_pval_guest_tests.c $(PVAL_SRCS) src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r31_pval_guest_tests.c $(PVAL_SRCS) src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R32_UNIT_BIN): tests/r32_reconfig_unit_tests.c $(RECFG_SRCS) $(PVAL_SRCS) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r32_reconfig_unit_tests.c $(RECFG_SRCS) $(PVAL_SRCS) -o $@
+$(R32_GUEST_BIN): tests/r32_reconfig_guest_tests.c $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r32_reconfig_guest_tests.c $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+
+test: $(VM_TEST_BIN) $(HXF_TEST_BIN) $(BOOTINFO_TEST_BIN) $(HFW_TEST_BIN) $(DEVICE_TEST_BIN) $(ISA4_TEST_BIN) $(MMU_TEST_BIN) $(PT_TEST_BIN) $(KERNEL_PAGE_TEST_BIN) $(TLB_TEST_BIN) $(CPU_MODULE_TEST_BIN) $(OPCODE_MATRIX_TEST_BIN) $(BOARD_EXTRA_TEST_BIN) $(FB_VIEW_TEST_BIN) $(HFS_TEST_BIN) $(PROC_HFS_TEST_BIN) $(PROC_ECALL_IO_TEST_BIN) $(GFX_TEST_BIN) $(GFX_WM_TEST_BIN) $(M23_3_STATE_TEST_BIN) $(M23_4_RES_TEST_BIN) $(M24_2_EXIT_TEST_BIN) $(M24_2_CAP_TEST_BIN) $(M24_2_FAULT_RES_TEST_BIN) $(M24_4_RES_TEST_BIN) $(M25_2_OWN_TEST_BIN) $(M25_2_SCRUB_TEST_BIN) $(M25_6_HEAP_HOST_BIN) $(GFX_UI_TEST_BIN) $(GFX_DESK_TEST_BIN) $(GFX_CHROME_TEST_BIN) $(GFX_ECALL_TEST_BIN) $(NET_TEST_BIN) $(NET_ICMP_TEST_BIN) $(NET_UDP_TEST_BIN) $(NET_TCP_TEST_BIN) $(NET_DNS_TEST_BIN) $(NET_SOCK_TEST_BIN) $(NET_SOCK_ECALL_TEST_BIN) $(SEC_TEST_BIN) $(SEC_DISPATCH_TEST_BIN) $(SEC_ECALL_TEST_BIN) $(SEC_BOOT_TEST_BIN) $(M7_TEST_BIN) $(M8_PCB_PROBE_BIN) $(M9_NET_PROBE_BIN) $(M13_NET_BE_TEST_BIN) $(M14_APP_TEST_BIN) $(M15_ISO_TEST_BIN) $(M16_REL_TEST_BIN) $(M17_FAULT_TEST_BIN) $(M20_UNIT_TEST_BIN) $(M20_RES_TEST_BIN) $(M20_INPUT_TEST_BIN) $(M20_IPC_TEST_BIN) $(M20_TEXT_TEST_BIN) $(M20_WIN_TEST_BIN) $(M20_LAUNCH_TEST_BIN) $(M20_SM_TEST_BIN) $(M20_FILE_TEST_BIN) $(M20_INTEG_TEST_BIN) $(MKFS_BIN) $(FSCK_BIN) $(VM_BIN) $(R11_SCHED_BIN) $(R11_TIMER_BIN) $(R12_TELEM_BIN) $(R13_TELEM_BIN) $(R20_POLICY_BIN) $(R21_DET_BIN) $(R21_GUEST_BIN) $(R22_UNIT_BIN) $(R22_RUN_BIN) $(HAEUN_EVAL_BIN) $(R30_UNIT_BIN) $(R30_GUEST_BIN) $(R31_UNIT_BIN) $(R31_GUEST_BIN) $(R32_UNIT_BIN) $(R32_GUEST_BIN) $(BUILD)/r11-images.stamp $(BUILD)/r12-images.stamp $(BUILD)/r21-images.stamp $(BUILD)/r22-images.stamp $(BUILD)/r30-images.stamp toolchain-test
 	./$(VM_TEST_BIN)
 	./$(HXF_TEST_BIN)
 	./$(BOOTINFO_TEST_BIN)
@@ -482,6 +557,21 @@ test: $(VM_TEST_BIN) $(HXF_TEST_BIN) $(BOOTINFO_TEST_BIN) $(HFW_TEST_BIN) $(DEVI
 	$(PYTHON) tests/m25_6_allocator_tests.py $(VM_BIN)
 	$(PYTHON) tests/m25_6_heap_isolation_tests.py $(VM_BIN)
 	$(PYTHON) tests/m25_6_heap_lifecycle_tests.py $(VM_BIN)
+	./$(R11_SCHED_BIN) $(BUILD)
+	./$(R11_TIMER_BIN) $(BUILD)
+	./$(R12_TELEM_BIN) $(BUILD)
+	./$(R13_TELEM_BIN) $(BUILD)
+	./$(R20_POLICY_BIN) $(BUILD)
+	./$(R21_DET_BIN) $(BUILD)
+	./$(R21_GUEST_BIN) $(BUILD)
+	./$(R22_UNIT_BIN)
+	./$(R22_RUN_BIN) $(BUILD)
+	./$(R30_UNIT_BIN)
+	./$(R30_GUEST_BIN) $(BUILD)
+	./$(R31_UNIT_BIN)
+	./$(R31_GUEST_BIN) $(BUILD)
+	./$(R32_UNIT_BIN)
+	./$(R32_GUEST_BIN) $(BUILD)
 
 
 

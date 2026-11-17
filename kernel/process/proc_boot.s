@@ -2,6 +2,7 @@
 .isa 4
 .global _start
 .global arm_timer
+.global telem_boot_init
 
 _start:
     jal r1, p_tv
@@ -38,6 +39,7 @@ p_irq:
     addi r2, r0, 1
     sw r2, 4(r1)
     jal r15, arm_timer
+    jal r15, telem_boot_init
     addi r1, r0, 2
     csrrw r0, 0, r1
     jal r8, p_pcb

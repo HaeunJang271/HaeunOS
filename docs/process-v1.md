@@ -33,9 +33,42 @@ Run multiple isolated user processes with kernel/user stacks, full GPR context s
 | 36 | `ustack_top` |
 | 40 | `ustack_base` |
 | 44–56 | `fd[0..3]` (0 = closed; 1 = console) |
-| 64–120 | saved `r1`…`r15` |
+| 64–120 | saved `r1`…`r15` (fork copies 64–127; offset 112 is unused but copied) |
+| 128–168 | R1.2 observational telemetry (not scheduling inputs) |
+| 172–255 | reserved |
 
-`NPROC = 4`. Current index word at `0x0000A400`. Next pid counter at `0x0000A404`.
+`NPROC = 4`. Current index word at `0x0000A400`. Next pid counter at `0x0000A404`. Scratch `0xA410`–`0xA44B`. Fault diag `0xA450`–`0xA45F`. `IDLE_FLAG` `0xA460`.
+
+### Observational telemetry (R1.2)
+
+Counters are unsigned 32-bit and wrap modulo `2^32`. Timestamps use timer `COUNT_LO` with unsigned modular subtraction. An individual unaccounted interval must be shorter than `2^32` ticks. Telemetry never feeds `pick_next`.
+
+Per-PCB (base + stride):
+
+| Offset | Field | Meaning |
+|---:|---|---|
+| +128 | `run_ticks` | `COUNT_LO` spent in `RUNNING` |
+| +132 | `ready_wait_ticks` | time in `READY` before selection |
+| +136 | `sleep_ticks` | `SLEEP` intervals until wake |
+| +140 | `blocked_ticks` | `WAIT` intervals until wake |
+| +144 | `dispatch_count` | successful `pick_next` selections (includes self) |
+| +148 | `complete_lo` | first `ZOMBIE` timestamp |
+| +152 | `complete_valid` | 1 after `complete_lo` written |
+| +156 | `account_lo` | `COUNT_LO` at last dispatch / boot |
+| +160 | `ready_since` | `COUNT_LO` when entered `READY` |
+| +164 | `sleep_since` | `COUNT_LO` when entered `SLEEP` |
+| +168 | `blocked_since` | `COUNT_LO` when entered `WAIT` |
+
+Globals (same PCB page; do not use `0xA460`):
+
+| Address | Field |
+|---|---|
+| `0xA464` | `timer_irqs` — guest timer-trap entries (`do_timer` / `idle_trap`) |
+| `0xA468` | `context_switches` — selections where PCB index changed |
+| `0xA46C` | reserved (reconfiguration attempts) |
+| `0xA470` | reserved (reconfiguration failures) |
+
+Accounting points: leave `RUNNING` (timer demote, `YIELD`, `SLEEP`, `WAIT`, `EXIT`, fault) adds into `run_ticks` from `account_lo`. Kernel handler time while the PCB is still `RUNNING` is included; time after the state leaves `RUNNING` is not. `dispatch_count` increments on every successful pick; `context_switches` only when the selected index differs from the previous current index. Forked children zero `+128`–`+168` and set `ready_since`; parents are not cleared. Host `APP_SPAWN` memset clears the slot and writes `ready_since` from host `timer_count`.
 
 ## Stacks and isolation
 
@@ -46,7 +79,9 @@ Run multiple isolated user processes with kernel/user stacks, full GPR context s
 
 ## Scheduler
 
-Round-Robin over `READY`/`RUNNING` processes. Timer quantum is 32 ticks (one-shot compare). On cause `16`: acknowledge IRQC, wake `SLEEP` deadlines, pick the next runnable process, re-arm the timer immediately before `ERET`.
+Round-Robin over `READY`/`RUNNING` processes in slots 0..2 (`sched_slots` = 3). R2.0 splits RR candidate selection (`policy_rr` / `policy_select`, ID `0` at `0xA474`) from scheduler commit in `pick_next`; RR semantics are unchanged (see `docs/r20-scheduler-policy.md`). The PCB table still has 4 rows; slot 3 has no address space and is never selected. User timer quantum is 32 ticks. `restore_ret` re-arms compare as `timer_count + 96` and acknowledges a stale timer IRQ so the handler tail cannot consume the one-shot or steal `ERET`. `arm_timer` writes both compare halves, including the carry out of the low word. On cause `16`: acknowledge IRQC, wake `SLEEP` deadlines, pick the next runnable process, re-arm immediately before `ERET`.
+
+A failed pick does not `ERET` into a `SLEEP`, `WAIT`, `ZOMBIE`, or `FREE` PCB. `resume_or_idle` / `idle_enter` set `IDLE_FLAG` at `0xA460` and wait in supervisor with timer IRQs enabled. `trap_entry` sees the flag and does not rewrite the saved user PCB. Wake condition is signed(`COUNT_LO - deadline`) >= 0, which is the unsigned deadline test for sleeps shorter than 2^31 ticks. If nothing is `SLEEP` and nothing is runnable, the kernel halts: `r1` is the current exit code when that PCB is `ZOMBIE`, otherwise `r1 = 4` (WAIT deadlock).
 
 ## Syscall ABI
 

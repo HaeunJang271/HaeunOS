@@ -6,7 +6,11 @@
 .global advance_epc
 .global restore_ret
 .global pick_next
+.global resume_or_idle
 .global fork_user_mem
+.global telem_leave_run
+.global telem_block
+.global telem_child
 
 sys_fork:
     jal r15, advance_epc
@@ -61,6 +65,7 @@ fk_cdone:
     jal r15, fork_user_mem
     addi r1, r0, 1
     sw r1, 0(r7)
+    jal r15, telem_child
     sw r0, 64(r7)
     lw r1, 4(r7)
     sw r1, 64(r8)
@@ -186,11 +191,12 @@ wt_next:
     jal r0, wt_scan
 # Block without advancing EPC so a wake re-enters WAIT and rescans zombies.
 wt_block:
+    jal r15, telem_leave_run
     sw r0, 24(r8)
     addi r1, r0, 4
     sw r1, 0(r8)
-    jal r15, pick_next
-    jal r0, restore_ret
+    jal r15, telem_block
+    jal r0, resume_or_idle
 
 # Non-blocking WAIT: reap one own ZOMBIE or return -1. Does not change WAIT.
 sys_trywait:

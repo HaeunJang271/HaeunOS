@@ -16,37 +16,37 @@
 .global restore_ret
 .global pick_next
 .global wake_all
+.global resume_or_idle
 .global wake_wait
 .global orphan_reparent
+.global telem_leave_run
+.global telem_ready
+.global telem_sleep
+.global telem_complete
+.global telem_wwait
 
 sys_exit:
     # Idempotent: already ZOMBIE → schedule only (mirror fault_exit).
     lw r1, 0(r8)
     addi r2, r0, 5
     beq r1, r2, sy_ex_sched
+    jal r15, telem_leave_run
     lw r1, 68(r8)
     sw r1, 16(r8)
+    jal r15, telem_complete
     addi r1, r0, 5
     sw r1, 0(r8)
     jal r15, orphan_reparent
     jal r15, wake_wait
 sy_ex_sched:
-    jal r15, pick_next
-    bne r1, r0, sy_ex_ok
-    # No READY: expire SLEEP deadlines once, then retry (minimal idle assist).
-    jal r15, wake_all
-    jal r15, pick_next
-    bne r1, r0, sy_ex_ok
-    lw r1, 16(r8)
-    halt
-sy_ex_ok:
-    jal r0, restore_ret
+    jal r0, resume_or_idle
 
 # User fatal trap: record cause/tval/epc/pid, ZOMBIE once, then schedule.
 sys_fault_exit:
     lw r1, 0(r8)
     addi r2, r0, 5
     beq r1, r2, sf_sched
+    jal r15, telem_leave_run
     csrrs r1, 3, r0
     sw r1, 16(r8)
     jal r2, p_fdiag
@@ -60,20 +60,13 @@ p_fdiag:
     sw r1, 8(r2)
     lw r1, 12(r8)
     sw r1, 12(r2)
+    jal r15, telem_complete
     addi r1, r0, 5
     sw r1, 0(r8)
     jal r15, orphan_reparent
     jal r15, wake_wait
 sf_sched:
-    jal r15, pick_next
-    bne r1, r0, sf_ok
-    jal r15, wake_all
-    jal r15, pick_next
-    bne r1, r0, sf_ok
-    lw r1, 16(r8)
-    halt
-sf_ok:
-    jal r0, restore_ret
+    jal r0, resume_or_idle
 
 sys_write:
     lw r2, 68(r8)
@@ -185,16 +178,20 @@ sys_getpid:
 
 sys_yield:
     jal r15, advance_epc
+    jal r15, telem_leave_run
     addi r1, r0, 1
     sw r1, 0(r8)
-    jal r15, pick_next
-    jal r0, restore_ret
+    jal r15, telem_ready
+    jal r0, resume_or_idle
 
 sys_sleep:
     lw r2, 68(r8)
     cmplt r1, r2, r0
     bne r1, r0, sl_bad
     beq r2, r0, sl_zero
+    addi r3, r2, 0
+    jal r15, telem_leave_run
+    addi r2, r3, 0
     jal r1, p_tm
     .word 0x10001000
 p_tm:
@@ -204,9 +201,9 @@ p_tm:
     sw r1, 20(r8)
     addi r1, r0, 3
     sw r1, 0(r8)
+    jal r15, telem_sleep
     jal r15, advance_epc
-    jal r15, pick_next
-    jal r0, restore_ret
+    jal r0, resume_or_idle
 sl_zero:
     jal r15, advance_epc
     jal r0, restore_ret
@@ -274,6 +271,7 @@ ww_loop:
     beq r1, r9, ww_wake
     jal r0, ww_next
 ww_wake:
+    jal r15, telem_wwait
     addi r1, r0, 1
     sw r1, 0(r7)
 ww_next:

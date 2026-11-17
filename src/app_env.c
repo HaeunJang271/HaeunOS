@@ -331,6 +331,8 @@ haeun_app_result haeun_app_spawn(haeun_app_env *env, int index, uint32_t *pid) {
     wr32(pcb + 40u, k_ustack_base[slot]);
     wr32(pcb + 44u, 1u); /* console fd0 */
     wr32(pcb + 116u, k_ustack_top[slot]); /* saved r13 */
+    /* R1.2: ready_since = COUNT_LO so spawn wait time is not stale zeros. */
+    wr32(pcb + 160u, (uint32_t)env->vm->timer_count);
     env->runs[slot].used = 1;
     env->runs[slot].app_index = index;
     env->runs[slot].pid = new_pid;

@@ -2,6 +2,7 @@
 """Shared linker for process-v1 kernel + a user program at 0x00108000."""
 from __future__ import annotations
 
+import struct
 from pathlib import Path
 
 import haeun_toolchain as tc
@@ -17,7 +18,40 @@ KERNEL_SRCS = [
     ROOT / "kernel/process/proc_fork_mem.s",
     ROOT / "kernel/process/proc_orphan.s",
     ROOT / "kernel/process/proc_sched.s",
+    ROOT / "kernel/process/proc_policy.s",
+    ROOT / "kernel/process/proc_telem.s",
 ]
+
+
+def _patch_sched_pol_boot(image: bytes, blobs: list[bytes], policy_id: int) -> bytes:
+    """Patch build-time sched_pol_boot word inside an HXF .text payload."""
+    _, _areas, text_syms = tc.link_relocated_sections(blobs)
+    if "sched_pol_boot" not in text_syms:
+        raise tc.ToolchainError("missing sched_pol_boot symbol")
+    if len(image) < 64 or image[:4] != b"HXF1":
+        raise tc.ToolchainError("invalid HXF for policy patch")
+    table_off = struct.unpack_from("<I", image, 20)[0]
+    seg_count = struct.unpack_from("<H", image, 24)[0]
+    seg_size = struct.unpack_from("<H", image, 26)[0]
+    text_file = None
+    for i in range(seg_count):
+        off = table_off + i * seg_size
+        typ, seg_flags, file_off, virt, file_sz, _mem, _a, _b = struct.unpack_from(
+            "<IIIIIIII", image, off
+        )
+        del typ, _mem, _a, _b
+        if (seg_flags & 4) != 0 and virt == HXF_BASE:
+            text_file = file_off
+            if text_syms["sched_pol_boot"] + 4 > file_sz:
+                raise tc.ToolchainError("sched_pol_boot outside .text")
+            break
+    if text_file is None:
+        raise tc.ToolchainError("HXF .text segment not found")
+    out = bytearray(image)
+    struct.pack_into(
+        "<I", out, text_file + text_syms["sched_pol_boot"], policy_id & 0xFFFFFFFF
+    )
+    return bytes(out)
 
 
 def _symbol_va(objects: list, placements: dict, name: str) -> int:
@@ -54,13 +88,16 @@ def _pad_bytes(n: int) -> bytes:
 
 
 def build_with_user(
-    user_source: Path, extra_sources: list[Path] | None = None
+    user_source: Path,
+    extra_sources: list[Path] | None = None,
+    policy_id: int = 0,
 ) -> bytes:
     """
     Link process kernel with user_source as user_init at 0x00108000.
 
     Optional extra_sources are linked after the primary user object (helpers).
     Patches trapvec to the linked trap_entry address.
+    policy_id patches sched_pol_boot (0=RR default, 1=FCFS). Fixed for the image.
     """
     kernel_objs = [
         tc.assemble(path.read_text(encoding="utf-8")) for path in KERNEL_SRCS
@@ -93,4 +130,7 @@ def build_with_user(
         raise tc.ToolchainError(
             f"user_init at 0x{user_va:08x}, expected 0x{USER_VA:08x}"
         )
+    if policy_id != 0:
+        image = _patch_sched_pol_boot(image, blobs, policy_id)
     return image
+

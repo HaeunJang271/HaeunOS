@@ -21,10 +21,20 @@
 .global wake_all
 .global pick_next
 .global arm_timer
+.global idle_trap
+.global idle_enter
+.global telem_inc_timer
+.global telem_boot_init
 
 # Mem scratch on PCB page (mapped kernel RW at 0xA000): 0xA410..
 trap_entry:
     sw r1, 0xA410(r0)
+    jal r1, p_ifl
+    .word 0x0000A460
+p_ifl:
+    lw r1, 0(r1)
+    lw r1, 0(r1)
+    bne r1, r0, idle_trap
     sw r2, 0xA414(r0)
     sw r3, 0xA418(r0)
     sw r4, 0xA41c(r0)
@@ -120,6 +130,7 @@ kernel_fault:
     halt
 
 do_timer:
+    jal r15, telem_inc_timer
     jal r2, p_irqc
     .word 0x10000000
 p_irqc:
@@ -127,7 +138,7 @@ p_irqc:
     sw r0, 12(r2)
     jal r15, wake_all
     jal r15, pick_next
-    jal r15, arm_timer
+    beq r1, r0, idle_enter
     jal r0, restore_ret
 
 cur_pcb:
@@ -157,6 +168,8 @@ advance_epc:
     jalr r0, r15, 0
 
 restore_ret:
+    jal r15, arm_timer
+    jal r15, ack_timer
     lw r1, 12(r8)
     csrrw r0, 2, r1
     lw r1, 64(r8)
@@ -175,3 +188,13 @@ restore_ret:
     lw r15, 124(r8)
     lw r8, 92(r8)
     eret
+
+# Drop a timer IRQ that fired while IE was clear, after the new compare is set.
+ack_timer:
+    addi r10, r15, 0
+    jal r2, p_ack
+    .word 0x10000000
+p_ack:
+    lw r2, 0(r2)
+    sw r0, 12(r2)
+    jalr r0, r10, 0

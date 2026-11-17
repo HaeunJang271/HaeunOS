@@ -4,6 +4,9 @@
 #include "haeun/hfw.h"
 #include "haeun/hxf.h"
 #include "haeun/sec_boot.h"
+#include "haeun/pval_validate.h"
+#include "haeun/reconfig_cli.h"
+#include "haeun/telem_inspect.h"
 #include "haeun/vm.h"
 #include "haeun/vm_gui_host.h"
 #include "haeun/vm_input_host.h"
@@ -11,6 +14,7 @@
 #include "haeun/vm_viewer.h"
 
 #include <errno.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,7 +31,12 @@ static const char *usage_text(void)
 	       "[--root-hash HEX] [--gui] [--desktop] [--apps] [--persist] "
 	       "[--persist-stress] [--max-steps N] "
 	       "[--app HXF]... [--net|--net-real] [--input] "
-	       "[--input-script NAME] [--viewer] [--user] [--fb-dump PPM]\n";
+	       "[--input-script NAME] [--viewer] [--user] [--fb-dump PPM] "
+	       "[--telem|--telem-json] "
+	       "[--validate-policy|--validate-policy-json] "
+	       "[--target rr|fcfs] "
+	       "[--reconfigure-policy rr|fcfs --to rr|fcfs] "
+	       "[--reconfigure-json]\n";
 }
 
 static void uart_stdout(void *context, uint8_t byte)
@@ -156,6 +165,11 @@ int main(int argc, char **argv)
 	bool input_mode = false, viewer_mode = false, user_mode = false;
 	bool desktop_mode = false, apps_mode = false, persist_mode = false;
 	bool persist_stress = false, builtins = false, has_max_steps = false;
+	bool telem_mode = false, telem_json = false;
+	bool validate_mode = false, validate_json = false;
+	bool reconfig_mode = false, reconfig_json = false;
+	uint32_t validate_target = UINT32_MAX;
+	uint32_t reconfig_from = UINT32_MAX, reconfig_to = UINT32_MAX;
 	const char *firmware_path = NULL, *hxf_path = NULL, *disk_path = NULL;
 	const char *root_hash_hex = NULL, *fb_dump_path = NULL;
 	const char *input_script = NULL;
@@ -238,7 +252,44 @@ int main(int argc, char **argv)
 			user_mode = true;
 		else if (strcmp(argv[i], "--fb-dump") == 0 && i + 1 < argc)
 			fb_dump_path = argv[++i];
-		else if (argv[i][0] != '-' && hxf_path == NULL &&
+		else if (strcmp(argv[i], "--telem") == 0)
+			telem_mode = true;
+		else if (strcmp(argv[i], "--telem-json") == 0) {
+			telem_mode = true;
+			telem_json = true;
+		} else if (strcmp(argv[i], "--validate-policy") == 0)
+			validate_mode = true;
+		else if (strcmp(argv[i], "--validate-policy-json") == 0) {
+			validate_mode = true;
+			validate_json = true;
+		} else if (strcmp(argv[i], "--target") == 0 && i + 1 < argc) {
+			const char *t = argv[++i];
+			if (strcmp(t, "rr") == 0)
+				validate_target = HAEUN_PVAL_POLICY_RR;
+			else if (strcmp(t, "fcfs") == 0)
+				validate_target = HAEUN_PVAL_POLICY_FCFS;
+			else {
+				(void)fprintf(stderr, "unknown --target %s\n", t);
+				return 2;
+			}
+		} else if (strcmp(argv[i], "--reconfigure-policy") == 0 &&
+			   i + 1 < argc) {
+			reconfig_mode = true;
+			if (haeun_recfg_cli_parse_policy(argv[++i],
+							&reconfig_from) != 0) {
+				(void)fprintf(stderr,
+					      "unknown --reconfigure-policy\n");
+				return 2;
+			}
+		} else if (strcmp(argv[i], "--to") == 0 && i + 1 < argc) {
+			if (haeun_recfg_cli_parse_policy(argv[++i],
+							&reconfig_to) != 0) {
+				(void)fprintf(stderr, "unknown --to policy\n");
+				return 2;
+			}
+		} else if (strcmp(argv[i], "--reconfigure-json") == 0) {
+			reconfig_json = true;
+		} else if (argv[i][0] != '-' && hxf_path == NULL &&
 			 firmware_path == NULL)
 			hxf_path = argv[i];
 		else {
@@ -474,6 +525,43 @@ int main(int argc, char **argv)
 			goto out;
 		}
 		(void)printf("wrote framebuffer PPM %s\n", fb_dump_path);
+	}
+	if (telem_mode) {
+		haeun_telem_report trep;
+		if (haeun_telem_read(&vm, &trep) != HAEUN_TELEM_OK)
+			(void)fprintf(stderr, "telemetry read failed\n");
+		else if (telem_json)
+			haeun_telem_fprint_json(stdout, &trep);
+		else
+			haeun_telem_fprint(stdout, &trep);
+	}
+	if (validate_mode) {
+		haeun_pval_report vrep;
+		haeun_pval_result vr =
+			haeun_pval_validate(&vm, validate_target, &vrep);
+		if (vr != HAEUN_PVAL_OK)
+			(void)fprintf(stderr, "policy validation failed (%d)\n",
+				      (int)vr);
+		else if (validate_json)
+			haeun_pval_report_fprint_json(stdout, &vrep);
+		else
+			haeun_pval_report_fprint(stdout, &vrep);
+	}
+	if (reconfig_mode) {
+		int rrc;
+		if (reconfig_from == UINT32_MAX || reconfig_to == UINT32_MAX) {
+			(void)fprintf(stderr,
+				      "reconfigure requires --reconfigure-policy "
+				      "and --to\n");
+			rc = 2;
+			goto out;
+		}
+		rrc = haeun_recfg_cli_run(&vm, reconfig_from, reconfig_to,
+					  reconfig_json ? 1 : 0);
+		if (rrc != 0) {
+			rc = rrc;
+			goto out;
+		}
 	}
 	if (disk != NULL && disk_path != NULL &&
 	    haeun_disk_write_back(disk_path, disk, disk_size) != 0) {
