@@ -4,6 +4,8 @@
 
 HAEUN-OS is an independent operating-system research project for a custom 32-bit RISC guest (**HAEUN-32**). Guest code runs in the C17 interpreter (`src/vm.c`); the host never executes HAEUN instructions natively.
 
+Within HAEUN-OS, AROS refers to the host-assisted runtime optimization research presented in the R4.5/R4.6 publication package. The framework evaluates runtime policies, generates recommendations, validates proposed changes through the guest safety boundary, and supports transactional policy application. SHADOW is the default mode, while APPLY requires explicit opt-in. This research is not affiliated with, derived from, or related to the Amiga AROS (AROS Research Operating System) project. The shared acronym is coincidental.
+
 **Release 1.0** packages the M7–M17 stack: process isolation, apps launcher, GUI/net hosts, fault containment, and a reproducible Make-based build. **M19** adds a Developer SDK so external apps can be built without editing the kernel. Intentional v1 limits are listed in [docs/limitations.md](docs/limitations.md).
 
 ## Quick start
