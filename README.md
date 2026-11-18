@@ -91,7 +91,28 @@ haeun-vm <hxf>|--firmware <hfw> [--disk IMG] [--root-hash HEX]
 - [Graphics API](docs/graphics-api.md) · [Networking](docs/networking.md) · [Filesystem](docs/filesystem.md)
 - [Security](docs/security-v1.md) · [Isolation](docs/security-isolation-v1.md) · [Faults](docs/fault-handling-v1.md)
 - Milestone notes: [apps](docs/apps-v1.md), [reliability](docs/reliability-v1.md), and earlier `docs/*-v1.md` series
-- Research (AROS R4.0–R4.3): [R4.3 final](docs/r43-final-report.md) · [active apply](docs/r43-active-apply-audit.md) · [paper](research/paper/main.md) · [reproduction](research/reproduction/r43-external-reproduction.md)
+
+### Research — AROS (current publication)
+
+Host-assisted **AROS** (evaluate → recommend → safety-validate → transactional apply) is published as the R4.5/R4.6 research package on tag `v4.6.0`. Start here for external review:
+
+| Role | Document |
+|------|----------|
+| **Canonical manuscript** | [research/paper/r45-main-manuscript.md](research/paper/r45-main-manuscript.md) |
+| **Reproduction guide** | [research/reproduction/r45/README.md](research/reproduction/r45/README.md) |
+| **Release notes (R4.6)** | [docs/r46-release-notes.md](docs/r46-release-notes.md) |
+| **Review readiness** | [docs/r45-review-readiness.md](docs/r45-review-readiness.md) |
+
+Supporting package paths (figures, tables, limitations) are listed from the reproduction README and `docs/r46-release-manifest.json`.
+
+### Research — historical AROS drafts (R4.0–R4.3)
+
+These remain for provenance; they are **not** the current publication manuscript:
+
+- [R4.3 final report](docs/r43-final-report.md) (historical)
+- [R4.3 active-apply audit](docs/r43-active-apply-audit.md) (historical)
+- [R4.3 paper draft](research/paper/main.md) (historical draft; superseded by the R4.5 manuscript above)
+- [R4.3 external reproduction notes](research/reproduction/r43-external-reproduction.md) (prior reproduction path)
 
 ## License
 
