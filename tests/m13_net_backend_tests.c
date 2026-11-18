@@ -1,3 +1,7 @@
+#if !defined(_WIN32) && !defined(_POSIX_C_SOURCE)
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include "haeun/net.h"
 #include "haeun/net_backend.h"
 
@@ -11,8 +15,10 @@
 #include <windows.h>
 #else
 #include <arpa/inet.h>
+#include <errno.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <time.h>
 #include <unistd.h>
 #endif
 
@@ -199,7 +205,15 @@ static int test_dns_external_optional(void) {
 #ifdef _WIN32
         Sleep(10);
 #else
-        usleep(10000);
+        {
+            struct timespec req = {.tv_sec = 0, .tv_nsec = 10000000L}; /* 10ms */
+            struct timespec rem;
+            while (nanosleep(&req, &rem) != 0) {
+                if (errno != EINTR)
+                    break;
+                req = rem;
+            }
+        }
 #endif
         if (haeun_net_backend_poll_rx(&be, out, sizeof(out), &olen) ==
             HAEUN_NET_BE_OK) {
