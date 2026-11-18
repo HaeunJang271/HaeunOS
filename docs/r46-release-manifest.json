@@ -152,6 +152,28 @@
     }
   ],
   "file_count": 20,
-  "manifest_sha256": "08be8b2a9a522e7c15b65aeb7c82b4729778e4cec5bb17b0f7d2d5389c1a86a6",
-  "manifest_bytes": 5191
+  "manifest_integrity": {
+    "defined_in": "R4.6.4",
+    "self_hash_algorithm": "SHA-256",
+    "self_hash_scope": "canonical_json_excluding_manifest_sha256_and_manifest_bytes",
+    "canonicalization": [
+      "parse JSON object",
+      "omit keys manifest_sha256 and manifest_bytes",
+      "serialize with json.dumps: ensure_ascii=False, sort_keys=True, separators=(',', ':')",
+      "encode UTF-8 with no trailing newline",
+      "SHA-256 hex digest of those exact bytes"
+    ],
+    "manifest_bytes_definition": "byte length of the same canonical UTF-8 serialization used for manifest_sha256",
+    "frozen_release_commit": "f1a49c7f75efd2b24129a81576edd5148e6cbc76",
+    "note": "R4.6.4 working-tree remediation + R4.6.6 history rewrite in isolated clone. pre_rewrite_* fields preserve original freeze identities; post_rewrite_* are isolated-repo SHAs after literal path scrub. Does not modify the original working repository until separate approval.",
+    "pre_rewrite_release_commit": "f1a49c7f75efd2b24129a81576edd5148e6cbc76",
+    "pre_rewrite_tag_object": "ae8786094ee5e71f8013049571b353dcf85f70f4",
+    "post_rewrite_release_commit": "51d50aae27433afed86a119c746e6ef041c5aa39",
+    "post_rewrite_tag_object": "7d040de8c689bfb3a3c2babb7cc69c4c6603da09",
+    "post_rewrite_r432_commit": "3959541b8d9d5e92f31a63e922f16833127806e9",
+    "post_rewrite_r44_commit": "aba3fe7158a6e3794b0230498c8e0395ee252eaf",
+    "rewrite_phase": "R4.6.6 isolated filter-repo replace-text"
+  },
+  "manifest_sha256": "df8da1d9df682ce3c3135d2d9ffe0402c0dd4548acc98c23df028d8210324244",
+  "manifest_bytes": 5393
 }

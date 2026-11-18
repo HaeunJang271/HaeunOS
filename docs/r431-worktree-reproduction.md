@@ -20,7 +20,7 @@ cd ../HaeunOS-r431-wt
 make clean && make all && make test
 ```
 
-- Worktree path: `../HaeunOS-r431-wt`
+- Worktree path: `../HaeunOS-r431-wt` (sibling of the primary repository; absolute host path redacted in R4.6.4)
 - Detached HEAD at freeze SHA
 - Primary `build/` was not copied; artifacts built inside the worktree only
 - Main working tree was not used to “fix” failures (none occurred)
