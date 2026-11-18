@@ -1,0 +1,83 @@
+{
+  "milestone": "R4.3.2",
+  "status": "COMPLETE",
+  "audit_mode": "READ_ONLY_SOURCE_AUDIT_DOCUMENTATION_ONLY",
+  "baseline_commit_sha": "386c3a1517c49be8320c6ea263e726a6c006bb53",
+  "baseline_commit_subject": "research: freeze HaeunOS R4.3 validation baseline",
+  "parent_commit_sha": "5563a8614820bb73f76e4ce683e339dc78f0e4c6",
+  "manifest_commit_path_count": 207,
+  "manifest_sets_equal_commit": true,
+  "worktree": {
+    "path_relative": "../HaeunOS-r431-wt",
+    "head_sha": "386c3a1517c49be8320c6ea263e726a6c006bb53",
+    "detached": true,
+    "porcelain_clean": false,
+    "dirty_reason": "make test artifact churn + local log/env files",
+    "dirty_paths": [
+      "research/experiments/r42-performance-results.json",
+      "r431-worktree-make.log",
+      "env-r431-worktree.json"
+    ]
+  },
+  "commands": {
+    "create_worktree": "git worktree add --detach ../HaeunOS-r431-wt 386c3a1517c49be8320c6ea263e726a6c006bb53",
+    "reproduce": "make clean && make all && make test",
+    "exit_status": "CHAIN_EXIT_0; INDIVIDUAL_EXIT_CODES_NOT_CAPTURED",
+    "chained_exit_code": 0,
+    "elapsed_seconds_approx": 532,
+    "log_file": "r431-worktree-make.log",
+    "per_target_exit_codes": "INDIVIDUAL_EXIT_CODES_NOT_CAPTURED"
+  },
+  "environment": {
+    "os": "Microsoft Windows NT 10.0.22631.0",
+    "compiler": "cc.exe (x86_64-posix-seh-rev0, MinGW-Builds) 15.2.0",
+    "make": "GNU Make 4.4.1",
+    "python": "Python 3.13.2",
+    "cflags_default": "-std=c17 -O2 -Wall -Wextra -Wpedantic -Werror",
+    "cppflags_default": "-Iinclude",
+    "windows_link_libs_observed": ["user32", "gdi32", "ws2_32"],
+    "timestamp_local": "2026-11-18T18:45:45+09:00"
+  },
+  "results": {
+    "make_clean": "LOG_EVIDENCE_ONLY; INDIVIDUAL_EXIT_CODES_NOT_CAPTURED",
+    "make_all": "LOG_EVIDENCE_ONLY; INDIVIDUAL_EXIT_CODES_NOT_CAPTURED",
+    "make_test": "LOG_EVIDENCE_ONLY; INDIVIDUAL_EXIT_CODES_NOT_CAPTURED",
+    "make_chain": "CHAIN_EXIT_0",
+    "r41_smoke": "PASS",
+    "r41_standard": "PASS",
+    "r41_validation": "PASS",
+    "r42_validation": "PASS",
+    "r42_planned_ok_fail": "120/120/0",
+    "r43_rr_to_fifo_behavioral": "PASS matches=61 events=61 post=61",
+    "r43_fifo_to_rr_behavioral": "PASS matches=61 events=61 post=61",
+    "r43_selection_mirrors": "PASS RR=61 FIFO-boot=61",
+    "r43_active_verification": "PASS"
+  },
+  "kernel_sha256": {
+    "proc_sched.s": "f378293d24ef74fe9af42615959e40c5c1de038d49a38590adfa562bf200d7d7",
+    "proc_policy.s": "38a79c49d2f9f9d72589f2c13e63f96c1b279bb051e02ac8bb1328f7d81299de",
+    "proc_trap.s": "e6cb2a9823a5e6a4d3bcba1322fcaad4e4732fb3138972df7cef672ebe3bc020",
+    "proc_telem.s": "2d7dbeacdb4326838487a580f946de660a39c141c408e6767d529a89c06a705a",
+    "proc_fork.s": "d895e560f52a33610fb9f63271d854bb38d7941422bc9a4eb093f57ed60ca603"
+  },
+  "kernel_commit_equals_main": true,
+  "kernel_commit_equals_worktree": true,
+  "third_party_reproduction": "NOT_TESTED",
+  "known_limitations": [
+    "same-machine worktree only",
+    "per-target exit codes not separately instrumented",
+    "worktree not porcelain-clean after tests",
+    "experiment JSON may churn across runs"
+  ],
+  "documents": [
+    "docs/r432-reproduction-evidence.md",
+    "docs/r432-baseline-integrity.md",
+    "research/reproduction/r432-reproduction-manifest.json"
+  ],
+  "git_policy": {
+    "auto_stage": false,
+    "auto_commit": false,
+    "auto_push": false,
+    "awaiting_user_approval": true
+  }
+}
