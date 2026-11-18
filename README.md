@@ -1,5 +1,7 @@
 # HAEUN-OS 1.0
 
+[![Linux CI](https://github.com/HaeunJang271/HaeunOS/actions/workflows/linux-ci.yml/badge.svg?branch=main)](https://github.com/HaeunJang271/HaeunOS/actions/workflows/linux-ci.yml)
+
 HAEUN-OS is an independent operating-system research project for a custom 32-bit RISC guest (**HAEUN-32**). Guest code runs in the C17 interpreter (`src/vm.c`); the host never executes HAEUN instructions natively.
 
 **Release 1.0** packages the M7–M17 stack: process isolation, apps launcher, GUI/net hosts, fault containment, and a reproducible Make-based build. **M19** adds a Developer SDK so external apps can be built without editing the kernel. Intentional v1 limits are listed in [docs/limitations.md](docs/limitations.md).
