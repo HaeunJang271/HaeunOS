@@ -101,6 +101,7 @@ Host-assisted **AROS** (evaluate → recommend → safety-validate → transacti
 | **Canonical manuscript** | [research/paper/r45-main-manuscript.md](research/paper/r45-main-manuscript.md) |
 | **Reproduction guide** | [research/reproduction/r45/README.md](research/reproduction/r45/README.md) |
 | **Release notes (R4.6)** | [docs/r46-release-notes.md](docs/r46-release-notes.md) |
+| **Publication state clarification** | [docs/r46-publication-state-clarification.md](docs/r46-publication-state-clarification.md) |
 | **Review readiness** | [docs/r45-review-readiness.md](docs/r45-review-readiness.md) |
 
 Supporting package paths (figures, tables, limitations) are listed from the reproduction README and `docs/r46-release-manifest.json`.
