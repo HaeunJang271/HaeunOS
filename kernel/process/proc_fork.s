@@ -63,9 +63,10 @@ fk_copy:
 fk_cdone:
     # M25.3: clone user code + ustack; relocate SP into child VA.
     jal r15, fork_user_mem
+    # Assign ready_seq before publishing READY (no READY/seq=0 window).
+    jal r15, telem_child
     addi r1, r0, 1
     sw r1, 0(r7)
-    jal r15, telem_child
     sw r0, 64(r7)
     lw r1, 4(r7)
     sw r1, 64(r8)

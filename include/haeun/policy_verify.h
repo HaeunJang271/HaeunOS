@@ -19,8 +19,11 @@ typedef struct haeun_policy_fixture {
     uint32_t policy_id;
     uint32_t curr;
     uint32_t state[HAEUN_POLICY_NPROC];
-    /** ready_since per slot; used by FCFS mirror only. */
+    /** ready_since per slot; legacy FCFS mirror fallback. */
     uint32_t ready_since[HAEUN_POLICY_NPROC];
+    /** R3.4 ready_seq; if any nonzero, FCFS mirror prefers these. */
+    uint32_t ready_seq_lo[HAEUN_POLICY_NPROC];
+    uint32_t ready_seq_hi[HAEUN_POLICY_NPROC];
 } haeun_policy_fixture;
 
 /**

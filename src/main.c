@@ -5,6 +5,10 @@
 #include "haeun/hxf.h"
 #include "haeun/sec_boot.h"
 #include "haeun/pval_validate.h"
+#include "haeun/feedback.h"
+#include "haeun/optimize.h"
+#include "haeun/planner.h"
+#include "haeun/robust.h"
 #include "haeun/reconfig_cli.h"
 #include "haeun/telem_inspect.h"
 #include "haeun/vm.h"
@@ -36,7 +40,18 @@ static const char *usage_text(void)
 	       "[--validate-policy|--validate-policy-json] "
 	       "[--target rr|fcfs] "
 	       "[--reconfigure-policy rr|fcfs --to rr|fcfs] "
-	       "[--reconfigure-json]\n";
+	       "[--reconfigure-json] "
+	       "[--plan-policy] [--plan-json] [--execute] "
+	       "[--feedback-report|--feedback-json] "
+	       "[--adaptive|--evaluate-adaptive] [--dry-run] "
+	       "[--cycles N] [--state FILE] "
+	       "[--optimize|--optimization-report|--optimization-json] "
+	       "[--profile NAME] [--repetitions N] "
+	       "[--apply-recommendation FILE] [--build-dir DIR] "
+	       "[--robustness-report|--robustness-json] "
+	       "[--experiment-preset smoke|standard|extended|research] "
+	       "[--sensitivity-analysis] [--reconfiguration-stress] "
+	       "[--verify-recommendation] [--r37-out DIR]\n";
 }
 
 static void uart_stdout(void *context, uint8_t byte)
@@ -168,6 +183,21 @@ int main(int argc, char **argv)
 	bool telem_mode = false, telem_json = false;
 	bool validate_mode = false, validate_json = false;
 	bool reconfig_mode = false, reconfig_json = false;
+	bool plan_mode = false, plan_json = false, plan_execute = false;
+	bool feedback_mode = false, feedback_json = false;
+	bool adaptive_mode = false, adaptive_dry_run = false;
+	bool opt_mode = false, opt_json = false, opt_run = false;
+	bool opt_apply = false;
+	bool rb_mode = false, rb_json = false, rb_run = false;
+	bool rb_sens = false, rb_stress = false, rb_verify = false;
+	unsigned feedback_cycles = 1u;
+	unsigned opt_reps = 0u;
+	const char *feedback_state = NULL;
+	const char *opt_profile = NULL;
+	const char *opt_build_dir = "build";
+	const char *opt_apply_path = NULL;
+	const char *rb_preset = NULL;
+	const char *rb_out = NULL;
 	uint32_t validate_target = UINT32_MAX;
 	uint32_t reconfig_from = UINT32_MAX, reconfig_to = UINT32_MAX;
 	const char *firmware_path = NULL, *hxf_path = NULL, *disk_path = NULL;
@@ -289,6 +319,76 @@ int main(int argc, char **argv)
 			}
 		} else if (strcmp(argv[i], "--reconfigure-json") == 0) {
 			reconfig_json = true;
+		} else if (strcmp(argv[i], "--plan-policy") == 0) {
+			plan_mode = true;
+		} else if (strcmp(argv[i], "--plan-json") == 0) {
+			plan_mode = true;
+			plan_json = true;
+		} else if (strcmp(argv[i], "--execute") == 0) {
+			plan_execute = true;
+		} else if (strcmp(argv[i], "--feedback-report") == 0) {
+			feedback_mode = true;
+		} else if (strcmp(argv[i], "--feedback-json") == 0) {
+			feedback_mode = true;
+			feedback_json = true;
+		} else if (strcmp(argv[i], "--adaptive") == 0 ||
+			   strcmp(argv[i], "--evaluate-adaptive") == 0) {
+			feedback_mode = true;
+			adaptive_mode = true;
+		} else if (strcmp(argv[i], "--dry-run") == 0) {
+			adaptive_dry_run = true;
+		} else if (strcmp(argv[i], "--cycles") == 0 && i + 1 < argc) {
+			feedback_cycles = (unsigned)strtoul(argv[++i], NULL, 10);
+			if (feedback_cycles == 0u)
+				feedback_cycles = 1u;
+		} else if (strcmp(argv[i], "--state") == 0 && i + 1 < argc) {
+			feedback_state = argv[++i];
+		} else if (strcmp(argv[i], "--optimize") == 0) {
+			opt_mode = true;
+			opt_run = true;
+		} else if (strcmp(argv[i], "--optimization-report") == 0) {
+			opt_mode = true;
+		} else if (strcmp(argv[i], "--optimization-json") == 0) {
+			opt_mode = true;
+			opt_json = true;
+		} else if (strcmp(argv[i], "--profile") == 0 && i + 1 < argc) {
+			opt_profile = argv[++i];
+		} else if (strcmp(argv[i], "--repetitions") == 0 &&
+			   i + 1 < argc) {
+			opt_reps = (unsigned)strtoul(argv[++i], NULL, 10);
+		} else if (strcmp(argv[i], "--build-dir") == 0 &&
+			   i + 1 < argc) {
+			opt_build_dir = argv[++i];
+		} else if (strcmp(argv[i], "--apply-recommendation") == 0 &&
+			   i + 1 < argc) {
+			opt_mode = true;
+			opt_apply = true;
+			opt_apply_path = argv[++i];
+		} else if (strcmp(argv[i], "--robustness-report") == 0) {
+			rb_mode = true;
+			rb_run = true;
+		} else if (strcmp(argv[i], "--robustness-json") == 0) {
+			rb_mode = true;
+			rb_run = true;
+			rb_json = true;
+		} else if (strcmp(argv[i], "--experiment-preset") == 0 &&
+			   i + 1 < argc) {
+			rb_preset = argv[++i];
+			rb_mode = true;
+		} else if (strcmp(argv[i], "--sensitivity-analysis") == 0) {
+			rb_mode = true;
+			rb_run = true;
+			rb_sens = true;
+		} else if (strcmp(argv[i], "--reconfiguration-stress") == 0) {
+			rb_mode = true;
+			rb_stress = true;
+		} else if (strcmp(argv[i], "--verify-recommendation") == 0) {
+			rb_mode = true;
+			rb_run = true;
+			rb_verify = true;
+		} else if (strcmp(argv[i], "--r37-out") == 0 && i + 1 < argc) {
+			rb_out = argv[++i];
+			rb_mode = true;
 		} else if (argv[i][0] != '-' && hxf_path == NULL &&
 			 firmware_path == NULL)
 			hxf_path = argv[i];
@@ -560,6 +660,46 @@ int main(int argc, char **argv)
 					  reconfig_json ? 1 : 0);
 		if (rrc != 0) {
 			rc = rrc;
+			goto out;
+		}
+	}
+	if (plan_mode) {
+		int prc = haeun_plan_cli_run(&vm, plan_json ? 1 : 0,
+					     plan_execute ? 1 : 0);
+		if (prc != 0) {
+			rc = prc;
+			goto out;
+		}
+	}
+	if (feedback_mode) {
+		int frc = haeun_fb_cli_run(&vm, feedback_json ? 1 : 0,
+					   adaptive_mode ? 1 : 0,
+					   adaptive_dry_run ? 1 : 0,
+					   feedback_cycles, feedback_state);
+		if (frc != 0) {
+			rc = frc;
+			goto out;
+		}
+	}
+	if (opt_mode) {
+		int orc = haeun_opt_cli_run(
+			&vm, opt_build_dir, opt_json ? 1 : 0, opt_run ? 1 : 0,
+			adaptive_dry_run ? 1 : 0, opt_apply ? 1 : 0, opt_profile,
+			opt_reps, feedback_state, opt_apply_path);
+		if (orc != 0) {
+			rc = orc;
+			goto out;
+		}
+	}
+	if (rb_mode) {
+		int rbr = haeun_rb_cli_run(
+			&vm, opt_build_dir, rb_json ? 1 : 0, rb_run ? 1 : 0,
+			adaptive_dry_run ? 1 : 0, rb_sens ? 1 : 0,
+			rb_stress ? 1 : 0, rb_verify ? 1 : 0, rb_preset, opt_reps,
+			opt_profile, feedback_state,
+			rb_out ? rb_out : "build/r37");
+		if (rbr != 0) {
+			rc = rbr;
 			goto out;
 		}
 	}

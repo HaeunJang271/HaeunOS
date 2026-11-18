@@ -45,18 +45,34 @@ static int select_rr(const haeun_policy_fixture *fx, uint32_t *out_slot) {
 static int select_fcfs(const haeun_policy_fixture *fx, uint32_t *out_slot) {
     uint32_t slot;
     int have = 0;
+    int use_seq = 0;
     uint32_t best = 0u;
     uint32_t best_rs = 0u;
+    uint64_t best_seq = 0u;
+    for (slot = 0u; slot < HAEUN_POLICY_SLOTS; ++slot) {
+        if (fx->ready_seq_lo[slot] != 0u || fx->ready_seq_hi[slot] != 0u)
+            use_seq = 1;
+    }
     for (slot = 0u; slot < HAEUN_POLICY_SLOTS; ++slot) {
         uint32_t st = fx->state[slot];
-        uint32_t rs;
         if (st != ST_READY && st != ST_RUNNING)
             continue;
-        rs = fx->ready_since[slot];
-        if (!have || older_u32(rs, best_rs) || (rs == best_rs && slot < best)) {
-            have = 1;
-            best = slot;
-            best_rs = rs;
+        if (use_seq) {
+            uint64_t sq = ((uint64_t)fx->ready_seq_hi[slot] << 32) |
+                          (uint64_t)fx->ready_seq_lo[slot];
+            if (!have || sq < best_seq || (sq == best_seq && slot < best)) {
+                have = 1;
+                best = slot;
+                best_seq = sq;
+            }
+        } else {
+            uint32_t rs = fx->ready_since[slot];
+            if (!have || older_u32(rs, best_rs) ||
+                (rs == best_rs && slot < best)) {
+                have = 1;
+                best = slot;
+                best_rs = rs;
+            }
         }
     }
     if (!have)

@@ -11,7 +11,9 @@ enum {
     T_IRQ = 0x0000A464u,
     T_CTX = 0x0000A468u,
     POL_ID = 0x0000A474u,
-    SEAL_END = 0x0000A478u,
+    READY_SEQ_G = 0x0000A46Cu,
+    READY_SEQ_WRAP = 0x0000A478u,
+    SEAL_END = 0x0000A47Cu,
     OFF_STATE = 0u,
     OFF_PID = 4u,
     OFF_PPID = 8u,
@@ -25,6 +27,8 @@ enum {
     OFF_COMPLETE_LO = 148u,
     OFF_COMPLETE_VALID = 152u,
     OFF_READY_SINCE = 160u,
+    OFF_READY_SEQ_LO = 172u,
+    OFF_READY_SEQ_HI = 176u,
     ST_FREE = 0u,
     ST_READY = 1u,
     ST_RUNNING = 2u
@@ -102,6 +106,8 @@ haeun_pval_result haeun_pval_snapshot_read(const haeun_vm *vm,
         s->complete_lo = load(vm, base + OFF_COMPLETE_LO);
         s->complete_valid = load(vm, base + OFF_COMPLETE_VALID);
         s->ready_since = load(vm, base + OFF_READY_SINCE);
+        s->ready_seq_lo = load(vm, base + OFF_READY_SEQ_LO);
+        s->ready_seq_hi = load(vm, base + OFF_READY_SEQ_HI);
         s->as_slot_valid = (i < HAEUN_PVAL_AS_SLOTS) ? 1 : 0;
         if (s->state == ST_FREE && s->pid == 0u && s->complete_valid == 0u) {
             s->is_participant = 0;
@@ -119,6 +125,9 @@ haeun_pval_result haeun_pval_snapshot_read(const haeun_vm *vm,
                 out->ready_eligible_count++;
         }
     }
+    out->ready_seq_global_lo = load(vm, READY_SEQ_G);
+    out->ready_seq_global_hi = load(vm, READY_SEQ_G + 4u);
+    out->ready_seq_wrap = load(vm, READY_SEQ_WRAP);
     compute_seal(vm, out->seal);
     out->seal_valid = 1;
     fprintf(stderr, "haeun-pval: snapshot policy=%u curr=%u eligible=%u\n",

@@ -1,0 +1,1 @@
+{"note":"R4.2 6x5 all recommended RR; R4.3 groups apply","cells":30,"live_apply_per_cell":false,"groups":[{"recommendation":"RR","workloads":"all_six","profiles":"all_five","apply_evidence":"RR_to_FIFO_and_FIFO_to_RR_behavioral","status":"OBSERVED"}],"unapplied_individual_cells":30}

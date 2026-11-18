@@ -1,0 +1,18 @@
+{
+  "milestone": "R4.3",
+  "commit": "5563a8614820bb73f76e4ce683e339dc78f0e4c6",
+  "dirty": true,
+  "third_party": "NOT_TESTED",
+  "hashes": {
+    "kernel/process/proc_sched.s": "f378293d24ef74fe9af42615959e40c5c1de038d49a38590adfa562bf200d7d7",
+    "kernel/process/proc_policy.s": "38a79c49d2f9f9d72589f2c13e63f96c1b279bb051e02ac8bb1328f7d81299de",
+    "kernel/process/proc_trap.s": "e6cb2a9823a5e6a4d3bcba1322fcaad4e4732fb3138972df7cef672ebe3bc020",
+    "kernel/process/proc_telem.s": "2d7dbeacdb4326838487a580f946de660a39c141c408e6767d529a89c06a705a",
+    "kernel/process/proc_fork.s": "d895e560f52a33610fb9f63271d854bb38d7941422bc9a4eb093f57ed60ca603",
+    "research/experiments/r43-selection-trace.json": "cfc6096b137f304954cb48b36e66dbbd3c27ba1bea0976128cfa81694a8d8e4e",
+    "research/experiments/r43-active-apply.json": "3b65a26426841ff4e110e7aa8a0b6e782b77b1e1a9e48552b80d0fda5b5668e9",
+    "research/experiments/r43-safety-rejection.json": "edff72d1d1531683f5115518dd7d97e3d7b008928489ceab27618f06026b5ce0",
+    "research/experiments/r43-rollback-verification.json": "c7c18deb8a9e2e2aac1613c7635a01248d566043c539132d1a9823954b97b61e",
+    "research/experiments/r43-profile-apply-mapping.json": "842143bf02cb959cf7a66f3c9158706d1123815960fe0fde515e43b6fea40e34"
+  }
+}

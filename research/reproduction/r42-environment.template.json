@@ -1,0 +1,11 @@
+{
+  "reproduction_kind": "separate_directory_working_tree_copy",
+  "git_worktree_from_HEAD": "NOT_USED_at_time_of_r42",
+  "third_party_independent": false,
+  "git_commit_at_copy": "5563a8614820bb73f76e4ce683e339dc78f0e4c6",
+  "work_dir": "<REDACTED_LOCAL_PATH>",
+  "os": "<host OS version>",
+  "compiler": "<cc --version first line>",
+  "python": "<python --version>",
+  "note": "Template without personal absolute paths. Fill locally; do not commit filled copies with user home paths."
+}

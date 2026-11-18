@@ -77,11 +77,22 @@ static int test_timestamps(void) {
     snap.slots[1].state = 1;
     snap.slots[1].ready_since = 20u;
     snap.slots[2].as_slot_valid = 1;
+    /* Legacy ready_since-only: still UNKNOWN. */
     CHECK(haeun_pval_timestamp_check(&snap, &ts) == HAEUN_PVAL_OK);
-    CHECK(ts.pairwise_comparable && ts.overall == HAEUN_PVAL_UNKNOWN);
-    snap.slots[1].ready_since = 10u + 0x80000000u;
+    CHECK(ts.overall == HAEUN_PVAL_UNKNOWN);
+    /* R3.4 ready_seq unique + wrap==0 → PASS. */
+    snap.slots[0].ready_seq_lo = 1u;
+    snap.slots[1].ready_seq_lo = 2u;
     CHECK(haeun_pval_timestamp_check(&snap, &ts) == HAEUN_PVAL_OK);
-    CHECK(ts.exact_half_range_pair && ts.overall == HAEUN_PVAL_FAIL);
+    CHECK(ts.overall == HAEUN_PVAL_PASS && ts.external_bound_proven);
+    snap.slots[1].ready_seq_lo = 1u;
+    CHECK(haeun_pval_timestamp_check(&snap, &ts) == HAEUN_PVAL_OK);
+    CHECK(ts.overall == HAEUN_PVAL_FAIL);
+    snap.slots[1].ready_seq_lo = 2u;
+    snap.ready_seq_wrap = 1u;
+    CHECK(haeun_pval_timestamp_check(&snap, &ts) == HAEUN_PVAL_OK);
+    CHECK(ts.overall == HAEUN_PVAL_UNKNOWN);
+    snap.ready_seq_wrap = 0u;
     snap.slots[0].state = 3;
     snap.slots[1].state = 3;
     CHECK(haeun_pval_timestamp_check(&snap, &ts) == HAEUN_PVAL_OK);

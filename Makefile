@@ -41,7 +41,13 @@ GFX_SRCS := src/gfx_fb.c src/gfx_pixel.c src/gfx_font.c src/gfx_wm.c \
 	src/pval_snapshot.c src/pval_invariants.c src/pval_timestamp.c \
 	src/pval_compat.c src/pval_report.c src/pval_validate.c \
 	src/reconfig_fi.c src/reconfig_txn.c src/reconfig_report.c \
-	src/reconfig_eval.c src/reconfig_cli.c
+	src/reconfig_eval.c src/reconfig_cli.c src/eval_metrics.c \
+	src/planner_types.c src/planner_monitor.c src/planner_analyze.c \
+	src/planner_decide.c src/planner_safety.c src/planner_run.c \
+	src/planner_report.c src/planner_cli.c \
+	src/feedback_types.c src/feedback_metrics.c src/feedback_compare.c \
+	src/feedback_controller.c src/feedback_state.c src/feedback_report.c \
+	src/feedback_cli.c src/eval_fairness.c
 NET_SRCS := src/net_eth.c src/net_arp.c src/net_ipv4.c src/net_udp.c src/net_tcp.c src/net_dns.c src/net_sock.c src/net_drv.c
 NET_SOCK_ECALL_SRC := src/net_sock_ecall.c
 ifeq ($(OS),Windows_NT)
@@ -68,7 +74,15 @@ VIEWER_SRC := src/vm_viewer_stub.c
 VIEWER_LIBS :=
 endif
 VM_SRCS := src/main.c $(VM_CORE) src/hxf.c src/hfw.c src/bootinfo.c src/disk_persist.c \
-	src/sha256.c src/sec_boot.c $(M7_SRCS) $(VIEWER_SRC)
+	src/sha256.c src/sec_boot.c $(M7_SRCS) $(VIEWER_SRC) \
+	src/opt_types.c src/opt_stats.c src/opt_objectives.c src/opt_pareto.c \
+	src/opt_select.c src/opt_state.c src/opt_report.c src/opt_apply.c \
+	src/opt_cli.c src/opt_experiment.c src/eval_stats.c \
+	src/eval_workload.c src/eval_runner.c src/eval_cost.c \
+	src/eval_report.c src/eval_compare.c \
+	src/robust_types.c src/robust_replay.c src/robust_runner.c \
+	src/robust_sensitivity.c src/robust_reconfig.c src/robust_verify.c \
+	src/robust_report.c src/robust_cli.c
 VM_HDRS := include/haeun/vm.h include/haeun/board_mmio.h include/haeun/board_extra.h include/haeun/trap.h \
 	include/haeun/exception_handler.h include/haeun/mmu.h include/haeun/tlb.h \
 	include/haeun/pt.h include/haeun/register_file.h include/haeun/cpu_state.h \
@@ -82,7 +96,12 @@ VM_HDRS := include/haeun/vm.h include/haeun/board_mmio.h include/haeun/board_ext
 	include/haeun/pval_types.h include/haeun/pval_snapshot.h include/haeun/pval_invariants.h \
 	include/haeun/pval_timestamp.h include/haeun/pval_compat.h include/haeun/pval_report.h \
 	include/haeun/pval_validate.h include/haeun/reconfig.h include/haeun/reconfig_cli.h \
-	include/haeun/reconfig_eval.h
+	include/haeun/reconfig_eval.h include/haeun/planner.h include/haeun/planner_types.h \
+	include/haeun/eval_metrics.h include/haeun/eval_types.h \
+	include/haeun/feedback.h include/haeun/feedback_types.h \
+	include/haeun/feedback_experiment.h \
+	include/haeun/optimize.h include/haeun/opt_types.h \
+	include/haeun/robust.h include/haeun/robust_types.h
 $(VM_BIN): $(VM_SRCS) $(VM_HDRS) | $(BUILD)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(VM_SRCS) -o $@ $(VIEWER_LIBS) $(NET_BACKEND_LIBS)
 
@@ -393,6 +412,37 @@ R31_UNIT_BIN := $(BUILD)/r31-pval-unit-tests$(if $(filter Windows_NT,$(OS)),.exe
 R31_GUEST_BIN := $(BUILD)/r31-pval-guest-tests$(if $(filter Windows_NT,$(OS)),.exe,)
 R32_UNIT_BIN := $(BUILD)/r32-reconfig-unit-tests$(if $(filter Windows_NT,$(OS)),.exe,)
 R32_GUEST_BIN := $(BUILD)/r32-reconfig-guest-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+PLANNER_SRCS := src/planner_types.c src/planner_monitor.c src/planner_analyze.c \
+	src/planner_decide.c src/planner_safety.c src/planner_run.c \
+	src/planner_report.c src/planner_cli.c src/eval_metrics.c src/telem_inspect.c
+R33_UNIT_BIN := $(BUILD)/r33-planner-unit-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R33_GUEST_BIN := $(BUILD)/r33-planner-guest-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R34_UNIT_BIN := $(BUILD)/r34-active-unit-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R34_GUEST_BIN := $(BUILD)/r34-active-guest-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+FEEDBACK_CORE := src/feedback_types.c src/feedback_metrics.c src/feedback_compare.c \
+	src/feedback_controller.c src/feedback_state.c src/feedback_report.c \
+	src/feedback_cli.c src/eval_fairness.c
+FEEDBACK_SRCS := $(FEEDBACK_CORE) src/feedback_experiment.c src/eval_stats.c \
+	src/eval_workload.c src/eval_runner.c src/eval_cost.c src/eval_report.c \
+	src/eval_compare.c
+R35_UNIT_BIN := $(BUILD)/r35-feedback-unit-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R35_GUEST_BIN := $(BUILD)/r35-feedback-guest-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+OPT_CORE := src/opt_types.c src/opt_stats.c src/opt_objectives.c src/opt_pareto.c \
+	src/opt_select.c src/opt_state.c src/opt_report.c src/eval_stats.c
+OPT_SRCS := $(OPT_CORE) src/opt_experiment.c src/opt_apply.c src/opt_cli.c \
+	src/eval_fairness.c src/eval_workload.c src/eval_runner.c src/eval_cost.c \
+	src/eval_report.c src/eval_compare.c
+R36_UNIT_BIN := $(BUILD)/r36-opt-unit-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R36_GUEST_BIN := $(BUILD)/r36-opt-guest-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+RB_CORE := src/robust_types.c src/robust_replay.c src/robust_report.c
+RB_SRCS := $(RB_CORE) src/robust_runner.c src/robust_sensitivity.c \
+	src/robust_reconfig.c src/robust_verify.c src/robust_cli.c
+R37_UNIT_BIN := $(BUILD)/r37-robust-unit-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R37_GUEST_BIN := $(BUILD)/r37-robust-guest-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R40_INTEG_BIN := $(BUILD)/r40-integration-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R41_VAL_BIN := $(BUILD)/r41-validation-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R42_VAL_BIN := $(BUILD)/r42-validation-tests$(if $(filter Windows_NT,$(OS)),.exe,)
+R43_VAL_BIN := $(BUILD)/r43-active-verification-tests$(if $(filter Windows_NT,$(OS)),.exe,)
 $(R11_SCHED_BIN): tests/r11_sched_tests.c src/hxf.c $(VM_CORE) | $(BUILD)
 	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r11_sched_tests.c src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
 $(R11_TIMER_BIN): tests/r11_timer_tests.c src/hxf.c $(VM_CORE) | $(BUILD)
@@ -437,8 +487,36 @@ $(R32_UNIT_BIN): tests/r32_reconfig_unit_tests.c $(RECFG_SRCS) $(PVAL_SRCS) | $(
 	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r32_reconfig_unit_tests.c $(RECFG_SRCS) $(PVAL_SRCS) -o $@
 $(R32_GUEST_BIN): tests/r32_reconfig_guest_tests.c $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) | $(BUILD)
 	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r32_reconfig_guest_tests.c $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R33_UNIT_BIN): tests/r33_planner_unit_tests.c $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r33_planner_unit_tests.c $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) -o $@
+$(R33_GUEST_BIN): tests/r33_planner_guest_tests.c $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r33_planner_guest_tests.c $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R34_UNIT_BIN): tests/r34_active_unit_tests.c src/policy_verify.c $(RECFG_SRCS) $(PVAL_SRCS) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r34_active_unit_tests.c src/policy_verify.c $(RECFG_SRCS) $(PVAL_SRCS) -o $@
+$(R34_GUEST_BIN): tests/r34_active_guest_tests.c src/policy_verify.c $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r34_active_guest_tests.c src/policy_verify.c $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R35_UNIT_BIN): tests/r35_feedback_unit_tests.c $(FEEDBACK_CORE) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r35_feedback_unit_tests.c $(FEEDBACK_CORE) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) -o $@
+$(R35_GUEST_BIN): tests/r35_feedback_guest_tests.c $(FEEDBACK_SRCS) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r35_feedback_guest_tests.c $(FEEDBACK_SRCS) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R36_UNIT_BIN): tests/r36_opt_unit_tests.c $(OPT_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r36_opt_unit_tests.c $(OPT_CORE) -o $@
+$(R36_GUEST_BIN): tests/r36_opt_guest_tests.c $(OPT_SRCS) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r36_opt_guest_tests.c $(OPT_SRCS) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R37_UNIT_BIN): tests/r37_robust_unit_tests.c $(RB_CORE) $(OPT_CORE) src/eval_workload.c | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r37_robust_unit_tests.c $(RB_CORE) $(OPT_CORE) src/eval_workload.c -o $@
+$(R37_GUEST_BIN): tests/r37_robust_guest_tests.c $(RB_SRCS) $(OPT_SRCS) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r37_robust_guest_tests.c $(RB_SRCS) $(OPT_SRCS) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R40_INTEG_BIN): tests/r40_integration_tests.c $(RB_SRCS) $(OPT_SRCS) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r40_integration_tests.c $(RB_SRCS) $(OPT_SRCS) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R41_VAL_BIN): tests/r41_validation_tests.c $(RB_SRCS) $(OPT_SRCS) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r41_validation_tests.c $(RB_SRCS) $(OPT_SRCS) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R42_VAL_BIN): tests/r42_validation_tests.c $(OPT_SRCS) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r42_validation_tests.c $(OPT_SRCS) $(PLANNER_SRCS) $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
+$(R43_VAL_BIN): tests/r43_active_verification_tests.c src/policy_verify.c $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) | $(BUILD)
+	$(CC) $(CPPFLAGS) $(CFLAGS) tests/r43_active_verification_tests.c src/policy_verify.c $(RECFG_SRCS) $(PVAL_SRCS) src/hxf.c $(VM_CORE) -o $@ $(NET_BACKEND_LIBS)
 
-test: $(VM_TEST_BIN) $(HXF_TEST_BIN) $(BOOTINFO_TEST_BIN) $(HFW_TEST_BIN) $(DEVICE_TEST_BIN) $(ISA4_TEST_BIN) $(MMU_TEST_BIN) $(PT_TEST_BIN) $(KERNEL_PAGE_TEST_BIN) $(TLB_TEST_BIN) $(CPU_MODULE_TEST_BIN) $(OPCODE_MATRIX_TEST_BIN) $(BOARD_EXTRA_TEST_BIN) $(FB_VIEW_TEST_BIN) $(HFS_TEST_BIN) $(PROC_HFS_TEST_BIN) $(PROC_ECALL_IO_TEST_BIN) $(GFX_TEST_BIN) $(GFX_WM_TEST_BIN) $(M23_3_STATE_TEST_BIN) $(M23_4_RES_TEST_BIN) $(M24_2_EXIT_TEST_BIN) $(M24_2_CAP_TEST_BIN) $(M24_2_FAULT_RES_TEST_BIN) $(M24_4_RES_TEST_BIN) $(M25_2_OWN_TEST_BIN) $(M25_2_SCRUB_TEST_BIN) $(M25_6_HEAP_HOST_BIN) $(GFX_UI_TEST_BIN) $(GFX_DESK_TEST_BIN) $(GFX_CHROME_TEST_BIN) $(GFX_ECALL_TEST_BIN) $(NET_TEST_BIN) $(NET_ICMP_TEST_BIN) $(NET_UDP_TEST_BIN) $(NET_TCP_TEST_BIN) $(NET_DNS_TEST_BIN) $(NET_SOCK_TEST_BIN) $(NET_SOCK_ECALL_TEST_BIN) $(SEC_TEST_BIN) $(SEC_DISPATCH_TEST_BIN) $(SEC_ECALL_TEST_BIN) $(SEC_BOOT_TEST_BIN) $(M7_TEST_BIN) $(M8_PCB_PROBE_BIN) $(M9_NET_PROBE_BIN) $(M13_NET_BE_TEST_BIN) $(M14_APP_TEST_BIN) $(M15_ISO_TEST_BIN) $(M16_REL_TEST_BIN) $(M17_FAULT_TEST_BIN) $(M20_UNIT_TEST_BIN) $(M20_RES_TEST_BIN) $(M20_INPUT_TEST_BIN) $(M20_IPC_TEST_BIN) $(M20_TEXT_TEST_BIN) $(M20_WIN_TEST_BIN) $(M20_LAUNCH_TEST_BIN) $(M20_SM_TEST_BIN) $(M20_FILE_TEST_BIN) $(M20_INTEG_TEST_BIN) $(MKFS_BIN) $(FSCK_BIN) $(VM_BIN) $(R11_SCHED_BIN) $(R11_TIMER_BIN) $(R12_TELEM_BIN) $(R13_TELEM_BIN) $(R20_POLICY_BIN) $(R21_DET_BIN) $(R21_GUEST_BIN) $(R22_UNIT_BIN) $(R22_RUN_BIN) $(HAEUN_EVAL_BIN) $(R30_UNIT_BIN) $(R30_GUEST_BIN) $(R31_UNIT_BIN) $(R31_GUEST_BIN) $(R32_UNIT_BIN) $(R32_GUEST_BIN) $(BUILD)/r11-images.stamp $(BUILD)/r12-images.stamp $(BUILD)/r21-images.stamp $(BUILD)/r22-images.stamp $(BUILD)/r30-images.stamp toolchain-test
+test: $(VM_TEST_BIN) $(HXF_TEST_BIN) $(BOOTINFO_TEST_BIN) $(HFW_TEST_BIN) $(DEVICE_TEST_BIN) $(ISA4_TEST_BIN) $(MMU_TEST_BIN) $(PT_TEST_BIN) $(KERNEL_PAGE_TEST_BIN) $(TLB_TEST_BIN) $(CPU_MODULE_TEST_BIN) $(OPCODE_MATRIX_TEST_BIN) $(BOARD_EXTRA_TEST_BIN) $(FB_VIEW_TEST_BIN) $(HFS_TEST_BIN) $(PROC_HFS_TEST_BIN) $(PROC_ECALL_IO_TEST_BIN) $(GFX_TEST_BIN) $(GFX_WM_TEST_BIN) $(M23_3_STATE_TEST_BIN) $(M23_4_RES_TEST_BIN) $(M24_2_EXIT_TEST_BIN) $(M24_2_CAP_TEST_BIN) $(M24_2_FAULT_RES_TEST_BIN) $(M24_4_RES_TEST_BIN) $(M25_2_OWN_TEST_BIN) $(M25_2_SCRUB_TEST_BIN) $(M25_6_HEAP_HOST_BIN) $(GFX_UI_TEST_BIN) $(GFX_DESK_TEST_BIN) $(GFX_CHROME_TEST_BIN) $(GFX_ECALL_TEST_BIN) $(NET_TEST_BIN) $(NET_ICMP_TEST_BIN) $(NET_UDP_TEST_BIN) $(NET_TCP_TEST_BIN) $(NET_DNS_TEST_BIN) $(NET_SOCK_TEST_BIN) $(NET_SOCK_ECALL_TEST_BIN) $(SEC_TEST_BIN) $(SEC_DISPATCH_TEST_BIN) $(SEC_ECALL_TEST_BIN) $(SEC_BOOT_TEST_BIN) $(M7_TEST_BIN) $(M8_PCB_PROBE_BIN) $(M9_NET_PROBE_BIN) $(M13_NET_BE_TEST_BIN) $(M14_APP_TEST_BIN) $(M15_ISO_TEST_BIN) $(M16_REL_TEST_BIN) $(M17_FAULT_TEST_BIN) $(M20_UNIT_TEST_BIN) $(M20_RES_TEST_BIN) $(M20_INPUT_TEST_BIN) $(M20_IPC_TEST_BIN) $(M20_TEXT_TEST_BIN) $(M20_WIN_TEST_BIN) $(M20_LAUNCH_TEST_BIN) $(M20_SM_TEST_BIN) $(M20_FILE_TEST_BIN) $(M20_INTEG_TEST_BIN) $(MKFS_BIN) $(FSCK_BIN) $(VM_BIN) $(R11_SCHED_BIN) $(R11_TIMER_BIN) $(R12_TELEM_BIN) $(R13_TELEM_BIN) $(R20_POLICY_BIN) $(R21_DET_BIN) $(R21_GUEST_BIN) $(R22_UNIT_BIN) $(R22_RUN_BIN) $(HAEUN_EVAL_BIN) $(R30_UNIT_BIN) $(R30_GUEST_BIN) $(R31_UNIT_BIN) $(R31_GUEST_BIN) $(R32_UNIT_BIN) $(R32_GUEST_BIN) $(R33_UNIT_BIN) $(R33_GUEST_BIN) $(R34_UNIT_BIN) $(R34_GUEST_BIN) $(R35_UNIT_BIN) $(R35_GUEST_BIN) $(R36_UNIT_BIN) $(R36_GUEST_BIN) $(R37_UNIT_BIN) $(R37_GUEST_BIN) $(R40_INTEG_BIN) $(R41_VAL_BIN) $(R42_VAL_BIN) $(R43_VAL_BIN) $(BUILD)/r11-images.stamp $(BUILD)/r12-images.stamp $(BUILD)/r21-images.stamp $(BUILD)/r22-images.stamp $(BUILD)/r30-images.stamp toolchain-test
 	./$(VM_TEST_BIN)
 	./$(HXF_TEST_BIN)
 	./$(BOOTINFO_TEST_BIN)
@@ -572,6 +650,20 @@ test: $(VM_TEST_BIN) $(HXF_TEST_BIN) $(BOOTINFO_TEST_BIN) $(HFW_TEST_BIN) $(DEVI
 	./$(R31_GUEST_BIN) $(BUILD)
 	./$(R32_UNIT_BIN)
 	./$(R32_GUEST_BIN) $(BUILD)
+	./$(R33_UNIT_BIN)
+	./$(R33_GUEST_BIN) $(BUILD)
+	./$(R34_UNIT_BIN)
+	./$(R34_GUEST_BIN) $(BUILD)
+	./$(R35_UNIT_BIN)
+	./$(R35_GUEST_BIN) $(BUILD)
+	./$(R36_UNIT_BIN)
+	./$(R36_GUEST_BIN) $(BUILD)
+	./$(R37_UNIT_BIN)
+	./$(R37_GUEST_BIN) $(BUILD)
+	./$(R40_INTEG_BIN) $(BUILD)
+	./$(R41_VAL_BIN) $(BUILD) both
+	./$(R42_VAL_BIN) $(BUILD)
+	./$(R43_VAL_BIN) $(BUILD)
 
 
 

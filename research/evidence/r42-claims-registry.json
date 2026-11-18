@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "milestone": "R4.2",
+  "claims": [
+    {"id": "C1", "text": "Scheduler supports RR and preemptive FIFO via policy abstraction", "levels": ["A", "B"], "class": "VERIFIED"},
+    {"id": "C2", "text": "Runtime policy change uses validation-gated transaction", "levels": ["A", "B", "C"], "class": "VERIFIED", "note": "C from prior active tests REPORTED/OBSERVED"},
+    {"id": "C3", "text": "Host-assisted optimizer evaluates and recommends without direct policy write", "levels": ["A", "B", "C"], "class": "VERIFIED"},
+    {"id": "C4", "text": "Experiments reproducible under documented presets", "levels": ["C"], "class": "OBSERVED", "third_party": "NOT_TESTED"},
+    {"id": "C5", "text": "Multi-profile recommendation verification for catalog", "levels": ["C"], "class": "OBSERVED", "apply_per_cell": "NOT_TESTED"},
+    {"id": "P1", "text": "On catalog n=10, RR mean ready_wait < FIFO for all six workloads", "levels": ["C"], "class": "OBSERVED", "statistical_significance": "INSUFFICIENT"},
+    {"id": "P2", "text": "Statistically significant general superiority of a policy", "levels": [], "class": "INSUFFICIENT"}
+  ]
+}

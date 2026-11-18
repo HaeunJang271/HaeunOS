@@ -1,0 +1,4 @@
+{"applies":[
+{"label":"RR_to_FIFO_behavioral","step":22371,"src":0,"dst":1,"eligible":2,"txn":"COMMITTED","pol_after":1},
+{"label":"FIFO_to_RR_behavioral","step":22371,"src":1,"dst":0,"eligible":2,"txn":"COMMITTED","pol_after":0},
+{"end":true}]}

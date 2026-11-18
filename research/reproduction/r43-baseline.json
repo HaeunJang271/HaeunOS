@@ -1,0 +1,19 @@
+{
+  "milestone": "R4.3",
+  "timestamp_local": "2026-11-18",
+  "repository": "https://github.com/HaeunJang271/HaeunOS",
+  "branch": "main",
+  "commit_sha": "5563a8614820bb73f76e4ce683e339dc78f0e4c6",
+  "working_tree_clean": false,
+  "immutable_baseline": false,
+  "immutable_reason": "Dirty working tree with uncommitted R3.4–R4.3 research sources; no auto-commit per R4.3 rules",
+  "head_worktree_reproduction": "NOT_TESTED",
+  "kernel_sha256": {
+    "proc_sched.s": "f378293d24ef74fe9af42615959e40c5c1de038d49a38590adfa562bf200d7d7",
+    "proc_policy.s": "38a79c49d2f9f9d72589f2c13e63f96c1b279bb051e02ac8bb1328f7d81299de",
+    "proc_trap.s": "e6cb2a9823a5e6a4d3bcba1322fcaad4e4732fb3138972df7cef672ebe3bc020",
+    "proc_telem.s": "2d7dbeacdb4326838487a580f946de660a39c141c408e6767d529a89c06a705a",
+    "proc_fork.s": "d895e560f52a33610fb9f63271d854bb38d7941422bc9a4eb093f57ed60ca603"
+  },
+  "third_party_reproduction": "NOT_TESTED"
+}

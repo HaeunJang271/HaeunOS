@@ -34,8 +34,9 @@ Run multiple isolated user processes with kernel/user stacks, full GPR context s
 | 40 | `ustack_base` |
 | 44–56 | `fd[0..3]` (0 = closed; 1 = console) |
 | 64–120 | saved `r1`…`r15` (fork copies 64–127; offset 112 is unused but copied) |
-| 128–168 | R1.2 observational telemetry (not scheduling inputs) |
-| 172–255 | reserved |
+| 128–168 | R1.2 observational telemetry |
+| 172–176 | R3.4 `ready_seq` lo/hi (FIFO ordering; scheduling input for policy 1) |
+| 180–255 | reserved |
 
 `NPROC = 4`. Current index word at `0x0000A400`. Next pid counter at `0x0000A404`. Scratch `0xA410`–`0xA44B`. Fault diag `0xA450`–`0xA45F`. `IDLE_FLAG` `0xA460`.
 
@@ -65,8 +66,9 @@ Globals (same PCB page; do not use `0xA460`):
 |---|---|
 | `0xA464` | `timer_irqs` — guest timer-trap entries (`do_timer` / `idle_trap`) |
 | `0xA468` | `context_switches` — selections where PCB index changed |
-| `0xA46C` | reserved (reconfiguration attempts) |
-| `0xA470` | reserved (reconfiguration failures) |
+| `0xA46C` | R3.4 global `ready_seq` lo |
+| `0xA470` | R3.4 global `ready_seq` hi |
+| `0xA478` | R3.4 `ready_seq` wrap sticky |
 
 Accounting points: leave `RUNNING` (timer demote, `YIELD`, `SLEEP`, `WAIT`, `EXIT`, fault) adds into `run_ticks` from `account_lo`. Kernel handler time while the PCB is still `RUNNING` is included; time after the state leaves `RUNNING` is not. `dispatch_count` increments on every successful pick; `context_switches` only when the selected index differs from the previous current index. Forked children zero `+128`–`+168` and set `ready_since`; parents are not cleared. Host `APP_SPAWN` memset clears the slot and writes `ready_since` from host `timer_count`.
 

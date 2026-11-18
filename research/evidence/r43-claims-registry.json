@@ -1,0 +1,13 @@
+{
+  "milestone": "R4.3",
+  "claims": [
+    {"id": "C1", "class": "VERIFIED", "levels": ["A", "B"]},
+    {"id": "C2", "class": "VERIFIED", "levels": ["A", "B", "C"]},
+    {"id": "C2b", "class": "OBSERVED", "levels": ["C"], "note": "post-apply host mirror vs curr; 61+61 matches"},
+    {"id": "C3", "class": "VERIFIED", "levels": ["A", "B", "C"]},
+    {"id": "C4", "class": "OBSERVED", "head_worktree": "NOT_TESTED", "third_party": "NOT_TESTED"},
+    {"id": "C5", "class": "OBSERVED", "per_cell_apply": "NOT_TESTED"},
+    {"id": "P1", "class": "REPORTED", "note": "R4.2 prior; not new R4.3 run"},
+    {"id": "P2", "class": "INSUFFICIENT"}
+  ]
+}

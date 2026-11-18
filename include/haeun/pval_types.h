@@ -54,6 +54,8 @@ typedef struct haeun_pval_slot {
     uint32_t epc;
     uint32_t ptbr;
     uint32_t ready_since;
+    uint32_t ready_seq_lo;
+    uint32_t ready_seq_hi;
     uint32_t run_ticks;
     uint32_t ready_wait_ticks;
     uint32_t sleep_ticks;
@@ -82,6 +84,9 @@ typedef struct haeun_pval_snapshot {
     haeun_pval_slot slots[HAEUN_PVAL_NPROC];
     unsigned participant_count;
     unsigned ready_eligible_count;
+    uint32_t ready_seq_global_lo;
+    uint32_t ready_seq_global_hi;
+    uint32_t ready_seq_wrap;
     /** Seal of PCB page + policy + timer CSRs for read-only audit. */
     uint32_t seal[HAEUN_PVAL_SEAL_WORDS];
     int seal_valid;

@@ -91,6 +91,7 @@ haeun-vm <hxf>|--firmware <hfw> [--disk IMG] [--root-hash HEX]
 - [Graphics API](docs/graphics-api.md) · [Networking](docs/networking.md) · [Filesystem](docs/filesystem.md)
 - [Security](docs/security-v1.md) · [Isolation](docs/security-isolation-v1.md) · [Faults](docs/fault-handling-v1.md)
 - Milestone notes: [apps](docs/apps-v1.md), [reliability](docs/reliability-v1.md), and earlier `docs/*-v1.md` series
+- Research (AROS R4.0–R4.3): [R4.3 final](docs/r43-final-report.md) · [active apply](docs/r43-active-apply-audit.md) · [paper](research/paper/main.md) · [reproduction](research/reproduction/r43-external-reproduction.md)
 
 ## License
 

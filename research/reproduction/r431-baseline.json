@@ -1,0 +1,44 @@
+{
+  "milestone": "R4.3.1",
+  "status": "READY_FOR_APPROVAL",
+  "head_before_freeze": "5563a8614820bb73f76e4ce683e339dc78f0e4c6",
+  "working_tree_clean": false,
+  "immutable_baseline": false,
+  "commit_sha_after_freeze": null,
+  "worktree_reproduction": "NOT_TESTED",
+  "proposed_commit_message": "research: freeze HaeunOS R4.3 validation baseline",
+  "tracked_modified": 14,
+  "untracked_total": 205,
+  "untracked_include": 193,
+  "untracked_exclude": 12,
+  "proposed_commit_paths": 207,
+  "tracked_diffstat": {
+    "insertions": 435,
+    "deletions": 60
+  },
+  "kernel": {
+    "wt_equals_r43_baseline": true,
+    "head_equals_wt": {
+      "proc_sched.s": true,
+      "proc_policy.s": false,
+      "proc_trap.s": true,
+      "proc_telem.s": false,
+      "proc_fork.s": false
+    },
+    "ready_seq_delta_vs_head": true,
+    "sha256_wt_r43": {
+      "proc_sched.s": "f378293d24ef74fe9af42615959e40c5c1de038d49a38590adfa562bf200d7d7",
+      "proc_policy.s": "38a79c49d2f9f9d72589f2c13e63f96c1b279bb051e02ac8bb1328f7d81299de",
+      "proc_trap.s": "e6cb2a9823a5e6a4d3bcba1322fcaad4e4732fb3138972df7cef672ebe3bc020",
+      "proc_telem.s": "2d7dbeacdb4326838487a580f946de660a39c141c408e6767d529a89c06a705a",
+      "proc_fork.s": "d895e560f52a33610fb9f63271d854bb38d7941422bc9a4eb093f57ed60ca603"
+    },
+    "sha256_head_where_differs": {
+      "proc_policy.s": "73469ee95afa1ab6c6a2e408fe219e618bc16c36d0f23de440c2c152c2d20e82",
+      "proc_telem.s": "ad9369419b2a19118e8481a98e638a0c33b0803e6a749de2da46c5d87c7464d4",
+      "proc_fork.s": "02e6842e253b498c312b0a2a8738fc5a75169c6a1760589abef980129e295281"
+    }
+  },
+  "manifest": "docs/r431-commit-manifest.md",
+  "audit": "docs/r431-commit-audit.md"
+}
