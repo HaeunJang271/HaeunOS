@@ -61,19 +61,19 @@ static void focus_shell(haeun_vm_input_host *host, uint64_t at) {
     push_click(host, at, 160, 10);
 }
 
-/** Focus calc client area (window at 72,36 size 176x88). */
+/** Focus calc client area (window at 8,18 size 148x64). */
 static void focus_calc(haeun_vm_input_host *host, uint64_t at) {
-    push_click(host, at, 160, 80);
+    push_click(host, at, 80, 50);
 }
 
-/** Focus edit client area (window at 88,40). */
+/** Focus edit client area (window at 164,18 size 148x64). */
 static void focus_edit(haeun_vm_input_host *host, uint64_t at) {
-    push_click(host, at, 160, 90);
+    push_click(host, at, 238, 50);
 }
 
-/** Focus files client area (window at 112,56). */
+/** Focus files client area (window at 80,18 size 160x64). */
 static void focus_files(haeun_vm_input_host *host, uint64_t at) {
-    push_click(host, at, 180, 100);
+    push_click(host, at, 160, 50);
 }
 
 static void spawn_app(haeun_vm_input_host *host, uint8_t digit_sc) {
@@ -171,8 +171,8 @@ int haeun_vm_input_host_load_m22_3_script(haeun_vm_input_host *host,
         reset_script(host);
         spawn_app(host, SC_1);
         focus_calc(host, 45000u);
-        /* Close button: x in [243,248), y in [30,36) for calc at (72,36). */
-        push_click(host, 70000u, 245, 33);
+        /* Close: calc (8,18,148x64) → bx=151, ty=12; click (153,14). */
+        push_click(host, 70000u, 153, 14);
         focus_shell(host, 140000u);
         push_key(host, 180000u, SC_ESC);
         return 0;
@@ -180,7 +180,7 @@ int haeun_vm_input_host_load_m22_3_script(haeun_vm_input_host *host,
     if (strcmp(name, "chrome-close-app") == 0) {
         /* Solo guest window at calc geometry; chrome Close only. */
         reset_script(host);
-        push_click(host, 40000u, 245, 33);
+        push_click(host, 40000u, 153, 14);
         return 0;
     }
     if (strcmp(name, "m23-focus-min") == 0) {
@@ -192,30 +192,30 @@ int haeun_vm_input_host_load_m22_3_script(haeun_vm_input_host *host,
         push_key(host, 90000u, SC_2);
         focus_edit(host, 130000u);
         focus_calc(host, 160000u);
-        /* Min button for calc: x in [233,238). */
-        push_click(host, 190000u, 235, 33);
+        /* Min: calc bx=146, ty=12; click (148,14). */
+        push_click(host, 190000u, 148, 14);
         focus_shell(host, 260000u);
         push_key(host, 300000u, SC_ESC);
         return 0;
     }
     if (strcmp(name, "m23-input-route") == 0) {
         /*
-         * Concurrent calc+edit. Use non-overlapping client hits:
-         * calc-only (80,70) left of edit; edit-only (160,130) below calc.
+         * Concurrent calc+edit. Side-by-side client hits:
+         * calc-only (80,50); edit-only (238,50).
          */
         reset_script(host);
         spawn_app(host, SC_1);
-        push_click(host, 45000u, 80, 70);
+        push_click(host, 45000u, 80, 50);
         push_key(host, 55000u, SC_A);
         focus_shell(host, 70000u);
         push_key(host, 90000u, SC_2);
-        push_click(host, 130000u, 160, 130);
+        push_click(host, 130000u, 238, 50);
         push_key(host, 150000u, SC_B);
-        push_click(host, 180000u, 80, 70);
+        push_click(host, 180000u, 80, 50);
         push_key(host, 200000u, SC_A);
-        push_click(host, 220000u, 80, 70);
-        push_click(host, 240000u, 235, 33); /* minimize calc */
-        push_click(host, 260000u, 160, 130); /* edit after recover */
+        push_click(host, 220000u, 80, 50);
+        push_click(host, 240000u, 148, 14); /* minimize calc */
+        push_click(host, 260000u, 238, 50); /* edit after recover */
         push_key(host, 280000u, SC_B);
         focus_shell(host, 320000u);
         push_key(host, 360000u, SC_ESC);
@@ -225,13 +225,13 @@ int haeun_vm_input_host_load_m22_3_script(haeun_vm_input_host *host,
         /* Raise / min for PPM; non-overlapping focus clicks. */
         reset_script(host);
         spawn_app(host, SC_1);
-        push_click(host, 45000u, 80, 70);
+        push_click(host, 45000u, 80, 50);
         focus_shell(host, 70000u);
         push_key(host, 90000u, SC_2);
-        push_click(host, 130000u, 160, 130); /* raise edit */
-        push_click(host, 170000u, 80, 70);   /* raise calc */
-        push_click(host, 200000u, 235, 33);  /* min calc */
-        push_click(host, 230000u, 160, 130);
+        push_click(host, 130000u, 238, 50); /* raise edit */
+        push_click(host, 170000u, 80, 50);   /* raise calc */
+        push_click(host, 200000u, 148, 14);  /* min calc */
+        push_click(host, 230000u, 238, 50);
         focus_shell(host, 270000u);
         push_key(host, 320000u, SC_ESC);
         return 0;
@@ -240,22 +240,23 @@ int haeun_vm_input_host_load_m22_3_script(haeun_vm_input_host *host,
         /* Integrated: calc+edit, raise, keys, min, recover, chrome close. */
         reset_script(host);
         spawn_app(host, SC_1);
-        push_click(host, 45000u, 80, 70);
+        push_click(host, 45000u, 80, 50);
         push_key(host, 55000u, SC_A);
         focus_shell(host, 70000u);
         push_key(host, 90000u, SC_2);
-        push_click(host, 130000u, 160, 130);
+        push_click(host, 130000u, 238, 50);
         push_key(host, 150000u, SC_B);
-        push_click(host, 170000u, 80, 70);
+        push_click(host, 170000u, 80, 50);
         push_key(host, 190000u, SC_A);
-        push_click(host, 210000u, 160, 130);
+        push_click(host, 210000u, 238, 50);
         push_key(host, 230000u, SC_B);
-        push_click(host, 250000u, 80, 70);
-        push_click(host, 270000u, 235, 33); /* min calc */
-        push_click(host, 290000u, 160, 130);
+        push_click(host, 250000u, 80, 50);
+        push_click(host, 270000u, 148, 14); /* min calc */
+        push_click(host, 290000u, 238, 50);
         push_key(host, 310000u, SC_B); /* edit only after recover */
-        push_click(host, 330000u, 160, 130);
-        push_click(host, 350000u, 261, 37); /* edit chrome Close */
+        push_click(host, 330000u, 238, 50);
+        /* edit Close: (164,18,148x64) → bx=307; click (309,14). */
+        push_click(host, 350000u, 309, 14);
         focus_shell(host, 420000u);
         push_key(host, 480000u, SC_ESC);
         return 0;
@@ -264,9 +265,9 @@ int haeun_vm_input_host_load_m22_3_script(haeun_vm_input_host *host,
         /* Chrome CLOSE focused calc; desktop survives until Esc. */
         reset_script(host);
         spawn_app(host, SC_1);
-        push_click(host, 45000u, 80, 70);
+        push_click(host, 45000u, 80, 50);
         push_key(host, 55000u, SC_7);
-        push_click(host, 70000u, 245, 33); /* chrome Close */
+        push_click(host, 70000u, 153, 14); /* chrome Close */
         focus_shell(host, 140000u);
         push_key(host, 200000u, SC_ESC);
         return 0;
@@ -277,21 +278,21 @@ int haeun_vm_input_host_load_m22_3_script(haeun_vm_input_host *host,
         spawn_app(host, SC_1);
         focus_shell(host, 40000u);
         push_key(host, 60000u, SC_2);
-        push_click(host, 100000u, 80, 70);
+        push_click(host, 100000u, 80, 50);
         push_key(host, 110000u, SC_A);
-        push_click(host, 120000u, 160, 130);
+        push_click(host, 120000u, 238, 50);
         push_key(host, 130000u, SC_B);
-        push_click(host, 140000u, 80, 70);
+        push_click(host, 140000u, 80, 50);
         push_key(host, 150000u, SC_A);
-        push_click(host, 160000u, 160, 130);
+        push_click(host, 160000u, 238, 50);
         push_key(host, 170000u, SC_B);
-        push_click(host, 180000u, 80, 70);
+        push_click(host, 180000u, 80, 50);
         push_key(host, 190000u, SC_A);
-        push_click(host, 200000u, 160, 130);
+        push_click(host, 200000u, 238, 50);
         push_key(host, 210000u, SC_B);
-        push_click(host, 230000u, 80, 70);
-        push_click(host, 250000u, 235, 33);
-        push_click(host, 270000u, 160, 130);
+        push_click(host, 230000u, 80, 50);
+        push_click(host, 250000u, 148, 14);
+        push_click(host, 270000u, 238, 50);
         push_key(host, 290000u, SC_B);
         focus_shell(host, 340000u);
         push_key(host, 400000u, SC_ESC);

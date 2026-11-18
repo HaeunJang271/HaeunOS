@@ -120,8 +120,8 @@ def main(argv: list[str]) -> int:
         ["--input-script", "calc-add", "--max-steps", "300000"],
     )
     assert sum(read_ppm_rgb(calc_ppm, 0, 0)) < 200
-    # Calc client fill near (160,80) — window (72,36)+(88,44).
-    mid = read_ppm_rgb(calc_ppm, 160, 80)
+    # Calc client fill near (80,50) — window (8,18) size 148x64.
+    mid = read_ppm_rgb(calc_ppm, 80, 50)
     assert mid == (32, 24, 16) or sum(mid) < 120, (mid, "calc client/backdrop")
 
     edit_ppm = out / "m22_4_edit_open.ppm"
@@ -131,7 +131,7 @@ def main(argv: list[str]) -> int:
         edit_ppm,
         ["--input-script", "edit-type", "--max-steps", "300000"],
     )
-    assert sum(read_ppm_rgb(edit_ppm, 160, 90)) > 0
+    assert sum(read_ppm_rgb(edit_ppm, 200, 50)) > 0
 
     files_ppm = out / "m22_4_files_open.ppm"
     blob = run_dump(

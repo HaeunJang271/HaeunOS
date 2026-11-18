@@ -1,4 +1,5 @@
 # Interactive editor: letters/digits, Space/Enter, Backspace, Esc.
+# No command language — type text; Esc closes. Top-right band layout.
 .isa 4
 .global user_init
 
@@ -7,10 +8,10 @@ user_init:
     ecall
     sw r1, -4(r13)
     addi r1, r0, 18
-    addi r2, r0, 88
-    addi r3, r0, 40
-    addi r4, r0, 176
-    addi r5, r0, 96
+    addi r2, r0, 164
+    addi r3, r0, 18
+    addi r4, r0, 148
+    addi r5, r0, 64
     jal r6, wbase
     .word 0x00070000
 wbase:
@@ -130,6 +131,22 @@ fgt:
     .word 0x74696445
     .word 0x0000726F
 t_ed:
+    ecall
+    # Hint line: "type Esc" (no slash glyph dependency in OCR path).
+    addi r1, r0, 28
+    lw r2, -8(r13)
+    addi r3, r0, 8
+    addi r4, r0, 18
+    jal r5, fgh
+    .word 0x00A0C0E0
+fgh:
+    lw r5, 0(r5)
+    addi r6, r0, 0
+    jal r7, t_hint
+    .word 0x65707974
+    .word 0x63734520
+    .word 0x00000000
+t_hint:
     ecall
     lw r11, -12(r13)
     addi r10, r13, -128

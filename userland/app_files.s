@@ -7,11 +7,12 @@ user_init:
     ecall
     sw r1, -4(r13)
 
+    # Top-center band; keeps desktop tiles (y>=88) free for clicks.
     addi r1, r0, 18
-    addi r2, r0, 112
-    addi r3, r0, 56
+    addi r2, r0, 80
+    addi r3, r0, 18
     addi r4, r0, 160
-    addi r5, r0, 80
+    addi r5, r0, 64
     jal r6, base
     .word 0x00080000
 base:

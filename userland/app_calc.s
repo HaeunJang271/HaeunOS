@@ -1,6 +1,8 @@
 # Interactive calculator: digits, ops, Enter/=, Backspace, Esc.
 # + : = key (0x0D) or keypad + (0x4E)
-# - : minus (0x0C)   * : x/X (0x2D/0x2C)   / : slash (0x35)
+# - : main minus (0x0C) or keypad minus (0x4A)
+# * : x/X (0x2D/0x2C)   / : slash (0x35)
+# Window: top-left band so tiles at y>=88 stay clickable.
 .isa 4
 .global user_init
 
@@ -9,10 +11,10 @@ user_init:
     ecall
     sw r1, -4(r13)
     addi r1, r0, 18
-    addi r2, r0, 72
-    addi r3, r0, 36
-    addi r4, r0, 176
-    addi r5, r0, 88
+    addi r2, r0, 8
+    addi r3, r0, 18
+    addi r4, r0, 148
+    addi r5, r0, 64
     jal r6, wbase
     .word 0x00060000
 wbase:
@@ -62,6 +64,8 @@ on_key:
     beq r12, r1, op_add
     addi r1, r0, 0x0D
     beq r12, r1, op_add
+    addi r1, r0, 0x4A
+    beq r12, r1, op_sub
     addi r1, r0, 0x0C
     beq r12, r1, op_sub
     addi r1, r0, 0x2D
@@ -279,7 +283,7 @@ opch:
     sw r7, -28(r13)
     addi r1, r0, 28
     lw r2, -8(r13)
-    addi r3, r0, 152
+    addi r3, r0, 128
     addi r4, r0, 6
     jal r5, fgo
     .word 0x00FFE080

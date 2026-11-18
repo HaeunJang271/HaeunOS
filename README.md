@@ -29,10 +29,11 @@ Interactive 320×180 desktop (tiles → Calculator / Editor / Files):
 build/haeun-vm.exe build/process_desktop.hxf --apps --persist --viewer
 ```
 
-- **Calculator** — digits, `+` (`=` key / keypad `+`), `-`, `x`, `/`, Enter (=), Backspace, Esc
-- **Editor** — type letters/digits, Space, Backspace, Esc
-- **Files** — app registry list; Esc closes
-- Desktop: keys `1`–`3` launch apps, Esc quits the shell (click the window for focus)
+- **Calculator** — digits, `+` (`=` key / keypad `+`), `-` (main or keypad), `x`, `/`, Enter (=), Backspace, Esc
+- **Editor** — type letters/digits (no commands); Space, Backspace, Esc closes
+- **Files** — shows registered app names only (not a full file browser); Esc closes
+- Desktop: keys `1`–`3` launch apps, Esc quits the shell (click the Win32 viewer, then the app window, for keyboard focus)
+- Apps open in the top band so the three tiles stay clickable; at most two apps at once (AS slot limit)
 
 Developer SDK (`dist/haeun-sdk-1.0.0/` after `make sdk`):
 

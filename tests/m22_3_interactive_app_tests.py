@@ -170,8 +170,8 @@ def main(argv: list[str]) -> int:
         assert "[haeun-fault]" not in blob, blob
         assert "app-env: spawn calc" in blob, blob
         assert ppm.is_file(), ppm
-        # Display origin: calc win (72,36) + draw_num (8,40) → (80,76)
-        got = read_text(ppm, 80, 76, len(expect), "calc")
+        # Display origin: calc win (8,18) + draw_num (8,40) → (16,58)
+        got = read_text(ppm, 16, 58, len(expect), "calc")
         assert got == expect, (script, got, expect, code)
 
     # Calculator Esc exit → desktop resumes → clean shutdown
@@ -186,8 +186,8 @@ def main(argv: list[str]) -> int:
     code, blob = run_script(vm, desk, "edit-type", ppm, 300000)
     assert "app-env: spawn edit" in blob, blob
     assert ppm.is_file(), ppm
-    # edit win (88,40) + text (8,32) → (96,72)
-    got = read_text(ppm, 96, 72, 3, "edit")
+    # edit win (164,18) + text (8,32) → (172,50)
+    got = read_text(ppm, 172, 50, 3, "edit")
     assert got == "ab ", (got, blob)
 
     # --- Files: registry index 2, list painted, Esc closes ---
@@ -196,9 +196,10 @@ def main(argv: list[str]) -> int:
     assert_spawn_key(blob, "files", "0x04")
     assert "app-env: spawn files" in blob, blob
     assert "app-env: spawn filemgr" not in blob, blob
-    title = read_text(ppm, 120, 64, 5, "files")
+    # files win (80,18) + title (8,8) / name (8,28) → (88,26)/(88,46)
+    title = read_text(ppm, 88, 26, 5, "files")
     assert title == "Files", title
-    first = read_text(ppm, 120, 84, 4, "files")
+    first = read_text(ppm, 88, 46, 4, "files")
     assert first == "calc", first
 
     ppm = out / "m22_3_files_esc.ppm"
