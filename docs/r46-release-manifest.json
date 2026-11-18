@@ -1,0 +1,157 @@
+{
+  "release": "R4.6",
+  "status": "FINAL_FREEZE_READY",
+  "awaiting_commit_approval": true,
+  "head_at_audit": "3de73d4ee0649d990bc0da5904872f24767fe53e",
+  "implementation_baseline_sha": "386c3a1517c49be8320c6ea263e726a6c006bb53",
+  "evidence_commit_shas": {
+    "r432_reproduction_docs": "735013eccec1f48f814245082238b94c04f4e288",
+    "r44_research_audit": "3de73d4ee0649d990bc0da5904872f24767fe53e"
+  },
+  "reproduction_status": {
+    "author_host_worktree": "CHAIN_EXIT_0; INDIVIDUAL_EXIT_CODES_NOT_CAPTURED",
+    "third_party": "NOT_TESTED"
+  },
+  "known_limitations": [
+    "third_party_reproduction_NOT_TESTED",
+    "individual_make_exit_codes_NOT_CAPTURED",
+    "two_policies_only",
+    "profile_cells_30_all_RR_recommendation",
+    "per_cell_live_APPLY_NOT_TESTED",
+    "descriptive_catalog_metrics_only_deterministic_HXF",
+    "rollback_policy_ID_only",
+    "no_SMP_no_HW_atomicity_claims"
+  ],
+  "f1_shadow_apply": {
+    "shadow_edge": "OPT -->|SHADOW default| REP",
+    "apply_edge": "OPT -->|APPLY opt-in| SAF",
+    "prepare_edge": "SAF -->|prepare then| TXN",
+    "shadow_to_saf": false
+  },
+  "exclude_12_not_in_release": true,
+  "publication_package_files": [
+    {
+      "path": "research/paper/r45-main-manuscript.md",
+      "bytes": 10129,
+      "sha256": "2bd5c7150b9ef844b9e67a882e31974b49ebfafdddf52ec84331427814359ca6",
+      "lines": 113
+    },
+    {
+      "path": "research/paper/r45-tables.md",
+      "bytes": 3071,
+      "sha256": "84871e315e11c189d008a378cdeb066edaf994a92a98c1e1f538645ec88ad4ac",
+      "lines": 74
+    },
+    {
+      "path": "research/paper/r45-citation-audit.md",
+      "bytes": 1688,
+      "sha256": "e2611fcfc2f45a200fd7ddb54a2050d8a3239141503c171d544244790ce8533d",
+      "lines": 27
+    },
+    {
+      "path": "research/figures/r45/f1-system-architecture.md",
+      "bytes": 1129,
+      "sha256": "6895faaf8bfab21b59a962db3f331d84743be2f3e4a104c8a54049896d7da7bb",
+      "lines": 33
+    },
+    {
+      "path": "research/figures/r45/f2-eval-to-apply-pipeline.md",
+      "bytes": 687,
+      "sha256": "480b1e03565a66158717fd13eba55536073d84648e945c36475272fa3e56b28a",
+      "lines": 19
+    },
+    {
+      "path": "research/figures/r45/f3-safety-trust-boundary.md",
+      "bytes": 859,
+      "sha256": "67b367b74075c0b0e4afd552b6ad087153259615729ce5a463ee78b7c1eb14fe",
+      "lines": 26
+    },
+    {
+      "path": "research/figures/r45/f4-evidence-coverage.md",
+      "bytes": 762,
+      "sha256": "077bda8a3e04e0727cb67ccd1ba8fcd33b500a9e167ebb0ad1a92e895caa2c75",
+      "lines": 23
+    },
+    {
+      "path": "research/figures/r45/f5-claim-evidence.md",
+      "bytes": 1000,
+      "sha256": "1da83b16353a458c8826e06b45388db6116c0233c566d20a0532eb6daeef323a",
+      "lines": 33
+    },
+    {
+      "path": "research/reproduction/r45/README.md",
+      "bytes": 1918,
+      "sha256": "0affb06dbb541fb86ac1d2ca4dc72fb253b8c6522651e98e5ed68b16a8807e3c",
+      "lines": 53
+    },
+    {
+      "path": "research/reproduction/r45/artifact-index.md",
+      "bytes": 1079,
+      "sha256": "898acb62897e65b5946e8f6a1c6e2609c9f17ebd0558fe9858873d8e681bdb7c",
+      "lines": 18
+    },
+    {
+      "path": "research/reproduction/r45/baseline.json",
+      "bytes": 460,
+      "sha256": "b209781d828ce564d1a5e5adbadc79f4775d0894862822fc644398869256bbf6",
+      "lines": 9
+    },
+    {
+      "path": "research/reproduction/r45/limitations.md",
+      "bytes": 506,
+      "sha256": "67875c9097739e231fa30b4293f215b7819199e73accbed16c9aef79fcaf6ac6",
+      "lines": 9
+    },
+    {
+      "path": "docs/r45-review-readiness.md",
+      "bytes": 2226,
+      "sha256": "665427214c952798775c7d339dde310b8ef8804da02075d638cd0fe74171d45a",
+      "lines": 54
+    },
+    {
+      "path": "docs/r451-publication-consistency-audit.md",
+      "bytes": 3569,
+      "sha256": "cd4e7b8dbe4843aefdf22812e89badc6f72e4d593cac030e3d135792967fe79a",
+      "lines": 71
+    },
+    {
+      "path": "docs/r451-evidence-traceability-matrix.md",
+      "bytes": 3245,
+      "sha256": "87d8becebf63ceb397b310b2ea556e27d59a384501d739227f7526fc4d8f1e76",
+      "lines": 35
+    },
+    {
+      "path": "docs/r451-final-file-inventory.md",
+      "bytes": 1890,
+      "sha256": "3b1887db494a119d73579b59ad658ff061474b83c59a772f994ed1c6af45dce8",
+      "lines": 58
+    },
+    {
+      "path": "docs/r452-minor-issue-resolution.md",
+      "bytes": 2107,
+      "sha256": "94a45eb286e688f49244613d8eab7fb8a1094e8d5bc7e46808821a90cce8bcc2",
+      "lines": 46
+    },
+    {
+      "path": "docs/r452-figure-consistency-audit.md",
+      "bytes": 2102,
+      "sha256": "ddf2131ebc024164f4f1feee707bb8e1f9b79caf3aef377d523e2c0c6d666d66",
+      "lines": 44
+    },
+    {
+      "path": "docs/r46-final-release-audit.md",
+      "bytes": 2595,
+      "sha256": "e94dd888d673e3520eb36ab51070c8ebab5a3461063bc39d0754e6c97536fdf1",
+      "lines": 66
+    },
+    {
+      "path": "docs/r46-release-notes.md",
+      "bytes": 1896,
+      "sha256": "e52251dfbd1021747be79158070439a721c7445724430608763aabf7a3619479",
+      "lines": 44
+    }
+  ],
+  "file_count": 20,
+  "manifest_sha256": "08be8b2a9a522e7c15b65aeb7c82b4729778e4cec5bb17b0f7d2d5389c1a86a6",
+  "manifest_bytes": 5191
+}

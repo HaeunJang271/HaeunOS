@@ -1,0 +1,9 @@
+{
+  "package": "R4.5 reproducibility",
+  "implementation_baseline_sha": "386c3a1517c49be8320c6ea263e726a6c006bb53",
+  "r432_docs_sha": "735013eccec1f48f814245082238b94c04f4e288",
+  "r44_audit_sha": "3de73d4ee0649d990bc0da5904872f24767fe53e",
+  "third_party_reproduction": "NOT_TESTED",
+  "author_worktree_chain_exit": "CHAIN_EXIT_0; INDIVIDUAL_EXIT_CODES_NOT_CAPTURED",
+  "recommended_checkout_for_build": "386c3a1517c49be8320c6ea263e726a6c006bb53"
+}
