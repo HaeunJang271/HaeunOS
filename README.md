@@ -4,7 +4,7 @@
 
 ### Project Overview
 
-HAEUN-OS is an independent operating-system research project built around a custom 32-bit guest ISA (**HAEUN-32**) and a host-side C17 virtual machine. Guest instructions execute through the interpreter in `src/vm.c`; they are not executed natively by the host CPU. HAEUN-OS is not presented as a native PC-bootable operating system.
+HAEUN-OS is an independent operating-system research project built around a custom 32-bit guest ISA (**HAEUN-32**) and a host-side C17 virtual machine. Guest instructions execute through the interpreter in `src/vm.c`; they are not executed natively by the host CPU. The guest kernel is **modular monolithic** (not a microkernel). HAEUN-OS is not presented as a native PC-bootable / bare-metal operating system.
 
 HAEUN-OS is not affiliated with, derived from, or related to Amiga AROS (AROS Research Operating System). The acronym overlap is coincidental.
 
@@ -22,9 +22,22 @@ Release 1.0 is a Make-based stack (`make all`, `make test`, `make release`, `mak
 - **Isolation and faults** — Address-space isolation and user-fault handling (including ZOMBIE paths); see `tests/m15_isolation_tests.c` and `tests/m17_fault_tests.c` / related process tests.
 - **Filesystem and FDs** — HFS with process file-descriptor ownership (`proc-hfs-tests` and related HFS tests).
 - **Framebuffer, window manager, viewer** — 320×180 framebuffer, window manager/chrome; interactive Win32 GDI viewer (`--viewer`). Non-Windows hosts have no supported interactive viewer (stub).
-- **Desktop shell and builtins** — `process_desktop.hxf` shell and Calculator / Editor / Files under `--apps` (scripted guest coverage; not physical HID validation).
+- **Desktop shell and builtins** — `process_desktop.hxf` shell and Calculator / Editor / Files under `--apps` (scripted guest coverage; not physical HID validation). Files lists registered app names (not a full file browser).
 - **Networking** — Socket ECALLs with `--net` / `--net-real`; external DNS remains opt-in (`HAEUN_NET_EXTERNAL=1`).
 - **Developer SDK** — `make sdk` produces `dist/haeun-sdk-1.0.0/` and the `haeun` CLI for external guest apps without editing the kernel (`tests/m19_sdk_tests.py`).
+
+### FOSDEM 2027 (Kernel Devroom) presentation
+
+Materials for a HaeunOS **1.0** systems talk (isolation, fault containment, desktop/SDK) live under [research/presentation/fosdem-2027/](research/presentation/fosdem-2027/). That folder is separate from the AROS research talk outline.
+
+Honest framing for that audience:
+
+- Custom HAEUN-32 guest + host C17 interpreter; modular monolithic research OS.
+- MMU/TLB, process-v1 isolation, and user-process fault containment are in scope.
+- **Not** a microkernel; **not** bare-metal; **not** Amiga AROS.
+- Physical keyboard/mouse validation remains **NOT TESTED** until [docs/m22.4-manual-validation.md](docs/m22.4-manual-validation.md) is filled after live Win32 viewer use. Scripted tests and PPM dumps are not physical HID PASS.
+
+Slide deck / speaker / Q&A binaries for FOSDEM are listed as **MISSING** in that directory README until verified artifacts are added.
 
 ### AROS Research Framework
 

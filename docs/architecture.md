@@ -21,14 +21,16 @@ Each boundary uses versioned formats or explicit register contracts.
 
 - Fixed 32-bit instruction words; arithmetic wraps modulo 2^32.
 - Interpreter implements ISA v4 privilege/traps and MMU v1 + TLB/`SFENCE`.
-- Process-v1 caps preserved: AS≤3, app≤4KiB, user fault → ZOMBIE.
+- Guest kernel is **modular monolithic** (not a microkernel claim).
+- Process-v1 caps preserved: AS≤3, app≤4KiB, user fault → ZOMBIE ([fault-handling-v1.md](fault-handling-v1.md)).
 - Default GUI FB is **320×180** @ `0x00200000` (see [graphics-api.md](graphics-api.md)); shared KBD FIFO remains for legacy demos alongside per-pid `EVENT_POLL`.
 
 ## Release pointers
 
 - [getting-started.md](getting-started.md) · [boot-sequence.md](boot-sequence.md) · [limitations.md](limitations.md)
 - [platform.md](platform.md) · [software-abi.md](software-abi.md) · [isa-v4.md](isa-v4.md)
+- FOSDEM 2027 Kernel Devroom materials: [../research/presentation/fosdem-2027/README.md](../research/presentation/fosdem-2027/README.md)
 
 ## Non-goals
 
-Not a bare-metal bootable product OS, production security boundary, or full system emulator. See [roadmap.md](roadmap.md) for research direction beyond 1.0.
+Not a bare-metal bootable product OS, not a microkernel product claim, not a production security boundary, and not a full system emulator. See [roadmap.md](roadmap.md) for research direction beyond 1.0.

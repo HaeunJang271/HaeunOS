@@ -26,12 +26,16 @@ Synced M22.2 with current FB geometry.
 
 ## Input capture
 
+Three distinct mechanisms (see also [m22.4-manual-validation.md](m22.4-manual-validation.md)):
+
+1. **Viewer live input** (`--viewer`): `haeun_vm_viewer_attach` enables `live_input`. Win32 `WM_KEY*` / mouse messages feed the guest (`src/vm_viewer_win32.c`).
+2. **`--input`**: loads a host input script; without `--viewer`, runs `haeun_vm_input_host_run`.
+3. **`--input` + `--viewer`**: the same script is attached as `viewer.script` and replayed in the viewer loop (still scripted, not physical HID).
+
 Live window messages (IRQ left disabled for process-v1):
 
 - `WM_KEYDOWN` / `WM_KEYUP` → `MapVirtualKey` scancode → keyboard feed + chrome/evt routing
 - Mouse → client→FB map (`haeun_fb_view_map_mouse`) → mouse post / chrome pointer
-
-`--input --viewer` can also replay host input scripts inside the viewer loop.
 
 ## CLI
 
@@ -41,4 +45,4 @@ haeun-vm build/gui_demo.hxf --gui --user --viewer
 haeun-vm build/process_desktop.hxf --apps --persist --input --fb-dump out.ppm
 ```
 
-Physical HID beyond the Win32 viewer path is **not** separately certified.
+Physical HID via the Win32 viewer path is **not** separately certified until a live manual checklist is filled. Scripted `--input` / `--input-script` runs are not physical HID PASS.

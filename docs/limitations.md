@@ -13,8 +13,9 @@ These are **design caps**, not open bugs. Synced M22.2 with runtime (`include/ha
 | Input | Per-pid `EVENT_POLL` queues for process apps; shared KBD FIFO retained for legacy demos |
 | Text | ASCII 8×8 only (`WIN_DRAW_TEXT`); no Hangul |
 | Packaging | No installers / dynamic linking / HFS EXEC |
-| Faults | No user signals/restart; kernel fault → halt |
+| Faults | No user signals/restart; user fatal → ZOMBIE (see [fault-handling-v1.md](fault-handling-v1.md)); kernel fault → halt |
 | Viewer | Win32 GDI; non-Windows stub unsupported |
+| Files builtin | Lists **registered app names** only — not a full file browser / HFS explorer |
 | External DNS | Opt-in via `HAEUN_NET_EXTERNAL=1` |
 
 ### Supported vs partially tested (desktop)
@@ -22,8 +23,8 @@ These are **design caps**, not open bugs. Synced M22.2 with runtime (`include/ha
 | Feature | Status |
 |---------|--------|
 | 320×180 shell, three tiles, keys 1–3, Esc, `--persist` | **Supported**; covered by `m21_*` / `m22_1_*` process tests |
-| Calculator / Editor keyboard interaction | **Supported**; guest scripted coverage in `m22_3_interactive_app_tests.py` (not physical HID) |
-| Physical HID (real keyboard/mouse beyond Win32 viewer path) | **Not claimed** as separately validated |
+| Calculator / Editor keyboard interaction | **Supported** as guest **scripted** coverage in `m22_3_interactive_app_tests.py` (**not** physical HID) |
+| Physical HID (real keyboard/mouse via Win32 `--viewer`) | **Not claimed** complete; fill [m22.4-manual-validation.md](m22.4-manual-validation.md) only after live use |
 
 Security/isolation docs: [security-isolation-v1.md](security-isolation-v1.md), [fault-handling-v1.md](fault-handling-v1.md).  
 Graphics surface: [graphics-api.md](graphics-api.md).
