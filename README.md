@@ -2,13 +2,41 @@
 
 [![Linux CI](https://github.com/HaeunJang271/HaeunOS/actions/workflows/linux-ci.yml/badge.svg?branch=main)](https://github.com/HaeunJang271/HaeunOS/actions/workflows/linux-ci.yml)
 
-HAEUN-OS is an independent operating-system research project for a custom 32-bit RISC guest (**HAEUN-32**). Guest code runs in the C17 interpreter (`src/vm.c`); the host never executes HAEUN instructions natively.
+### Project Overview
 
-Within HAEUN-OS, AROS refers to the host-assisted runtime optimization research presented in the R4.5/R4.6 publication package. The framework evaluates runtime policies, generates recommendations, validates proposed changes through the guest safety boundary, and supports transactional policy application. SHADOW is the default mode, while APPLY requires explicit opt-in. This research is not affiliated with, derived from, or related to the Amiga AROS (AROS Research Operating System) project. The shared acronym is coincidental.
+HAEUN-OS is an independent operating-system research project built around a custom 32-bit guest ISA (**HAEUN-32**) and a host-side C17 virtual machine. Guest instructions execute through the interpreter in `src/vm.c`; they are not executed natively by the host CPU. HAEUN-OS is not presented as a native PC-bootable operating system.
 
-**Release 1.0** packages the M7–M17 stack: process isolation, apps launcher, GUI/net hosts, fault containment, and a reproducible Make-based build. **M19** adds a Developer SDK so external apps can be built without editing the kernel. Intentional v1 limits are listed in [docs/limitations.md](docs/limitations.md).
+HAEUN-OS is not affiliated with, derived from, or related to Amiga AROS (AROS Research Operating System). The acronym overlap is coincidental.
+
+### Why This Project Exists
+
+The project provides a controlled experimental environment for studying operating-system mechanisms where kernel behavior, process management, isolation, and runtime policy changes can be observed and tested on a research guest. A related research track investigates host-assisted evaluation of scheduling policies and safety-controlled mutation of a narrow guest policy word. Intentional v1 limits are listed in [docs/limitations.md](docs/limitations.md).
+
+### What Actually Runs
+
+Release 1.0 is a Make-based stack (`make all`, `make test`, `make release`, `make sdk`) that builds the host VM and guest images under `build/`. Features below are present in the current sources; corresponding unit/process tests exist in the Make `test` graph and/or `tests/` (this README does not assert a fresh green `make test` run). Caps and host constraints are in [docs/limitations.md](docs/limitations.md); the supported matrix is in [Release contract](#release-contract-supported).
+
+- **HAEUN-32 ISA and MMU/TLB** — ISA v1–v4 interpretation with MMU/TLB paths in the host VM (`src/vm.c`, `src/trap.c`, MMU/TLB modules; Make builds/runs `mmu-tests` and `tlb-tests`).
+- **Firmware boot and HXF load** — Firmware disk boot (`--firmware` / `--disk`) and direct load of HXF guest programs (HAEUN executable format) via `build/haeun-vm` (Windows: `haeun-vm.exe`).
+- **Processes, scheduling, syscalls** — Process-v1 guest kernel with cooperative yield and timer preemption; guest ECALL (system-call) surface used by process images.
+- **Isolation and faults** — Address-space isolation and user-fault handling (including ZOMBIE paths); see `tests/m15_isolation_tests.c` and `tests/m17_fault_tests.c` / related process tests.
+- **Filesystem and FDs** — HFS with process file-descriptor ownership (`proc-hfs-tests` and related HFS tests).
+- **Framebuffer, window manager, viewer** — 320×180 framebuffer, window manager/chrome; interactive Win32 GDI viewer (`--viewer`). Non-Windows hosts have no supported interactive viewer (stub).
+- **Desktop shell and builtins** — `process_desktop.hxf` shell and Calculator / Editor / Files under `--apps` (scripted guest coverage; not physical HID validation).
+- **Networking** — Socket ECALLs with `--net` / `--net-real`; external DNS remains opt-in (`HAEUN_NET_EXTERNAL=1`).
+- **Developer SDK** — `make sdk` produces `dist/haeun-sdk-1.0.0/` and the `haeun` CLI for external guest apps without editing the kernel (`tests/m19_sdk_tests.py`).
+
+### AROS Research Framework
+
+**AROS** here is a host-assisted research framework for runtime scheduling-policy evaluation—not the guest OS name and not Amiga AROS. Host tooling scores and may recommend RR (`0`) or preemptive FIFO (`1`); SHADOW is the default (evaluate/report without writing policy). APPLY is explicit opt-in.
+
+Policy mutation targets the guest policy word at `0xA474` through a host-side request → prepare/validate → commit path (`haeun_recfg_*` / `haeun_opt_apply`). Recommendation alone does not authorize the write. The between-`haeun_vm_step()` safe point is a single-threaded design assumption for serialized commit, not a runtime gate inside `commit()`. On failure after write, rollback restores the previous policy ID only—not full VM/PCB/memory state.
+
+AROS does not claim autonomous always-on policy selection, general scheduling-performance superiority, ACID or full-system rollback, SMP safety, hardware atomicity, or third-party reproduction. Frozen publication: tag `v4.6.0` (R4.5/R4.6). Post-tag claim reframing: R4.8 on `main` (does not replace `v4.6.0`). See [Research — AROS (frozen canonical release)](#research-aros-frozen-canonical-release) below.
 
 ## Quick start
+
+Shortest reliable sample path: `make all`, then run the hello HXF with the host VM binary (`build/haeun-vm.exe` on Windows, `build/haeun-vm` on POSIX).
 
 ```sh
 make clean
@@ -18,7 +46,7 @@ make release
 make sdk
 ```
 
-Run from the tree:
+Run from the tree (Windows examples; drop `.exe` on POSIX):
 
 ```sh
 build/haeun-vm.exe build/hello.hxf
@@ -27,7 +55,7 @@ build/haeun-vm.exe build/process_apps.hxf --apps
 build/haeun-vm.exe build/process_sdk.hxf --app path\to\app.hxf
 ```
 
-Interactive 320×180 desktop (tiles → Calculator / Editor / Files):
+Interactive 320×180 desktop (tiles → Calculator / Editor / Files; Win32 viewer):
 
 ```sh
 build/haeun-vm.exe build/process_desktop.hxf --apps --persist --viewer
@@ -39,7 +67,7 @@ build/haeun-vm.exe build/process_desktop.hxf --apps --persist --viewer
 - Desktop: keys `1`–`3` launch apps, Esc quits the shell (click the Win32 viewer, then the app window, for keyboard focus)
 - Apps open in the top band so the three tiles stay clickable; at most two apps at once (AS slot limit)
 
-Developer SDK (`dist/haeun-sdk-1.0.0/` after `make sdk`):
+Developer SDK (`dist/haeun-sdk-1.0.0/` after `make sdk`; run these from that directory):
 
 ```sh
 python haeun.py new my-app
@@ -99,7 +127,7 @@ haeun-vm <hxf>|--firmware <hfw> [--disk IMG] [--root-hash HEX]
 
 ### Research — AROS (frozen canonical release)
 
-Host-assisted **AROS** (evaluate → recommend → safety-validate → transactional apply) is published as the R4.5/R4.6 research package on tag `v4.6.0`. That tagged package remains the **immutable historical release** for external review of the frozen publication.
+Host-assisted **AROS** (evaluate → recommend → safety-validate → scoped policy-word apply) is published as the R4.5/R4.6 research package on tag `v4.6.0`. That tagged package remains the **immutable historical release** for external review of the frozen publication.
 
 | Role | Document |
 |------|----------|
@@ -111,13 +139,13 @@ Host-assisted **AROS** (evaluate → recommend → safety-validate → transacti
 
 Supporting package paths (figures, tables, limitations) are listed from the reproduction README and `docs/r46-release-manifest.json`.
 
-### Research — AROS revised manuscript (post-v4.6.0 candidate)
+### Research — AROS revised manuscript (post-v4.6.0)
 
-R4.8 revises claim framing and incorporates the R47 post-publication recommendation-discrimination follow-up. These paths are a **local revision candidate**. They do **not** replace tag `v4.6.0` or the frozen R4.5/R4.6 package until they are committed and present on the published tip.
+R4.8 revises claim framing and incorporates the R47 post-publication recommendation-discrimination follow-up. These paths are present on `main` as a **post-`v4.6.0` revision**. They do **not** replace tag `v4.6.0` or the frozen R4.5/R4.6 package.
 
 | Role | Document |
 |------|----------|
-| **Revised manuscript (R4.8.3)** | [research/paper/r48-main-manuscript.md](research/paper/r48-main-manuscript.md) |
+| **Revised manuscript (R4.8)** | [research/paper/r48-main-manuscript.md](research/paper/r48-main-manuscript.md) |
 | **R47 follow-up evidence report** | [docs/r47-final-evidence-report.md](docs/r47-final-evidence-report.md) |
 | **R47 experiment index** | [research/experiments/r47-discrimination/README.md](research/experiments/r47-discrimination/README.md) |
 | **Presentation outline** | [research/presentation/outline.md](research/presentation/outline.md) |
