@@ -15,18 +15,20 @@
 | 5 | Why AROS | Gap: measure vs *safe* runtime policy mutation | R4.8 manuscript §1 Introduction (`research/paper/r48-main-manuscript.md`) | 1:00 |
 | 6 | Guest/host split | Host evaluates/recommends; guest policy word is separate authority | R4.8 §4–5; historical R4.5 F1/F3 (`research/figures/r45/f1-system-architecture.md`; `research/figures/r45/f3-safety-trust-boundary.md`) | 1:30 |
 | 7 | SHADOW vs APPLY | SHADOW default → report only; APPLY opt-in → safety path | R4.8 §4–5; historical R4.5 F1/F2 (`research/figures/r45/f1-system-architecture.md`; `research/figures/r45/f2-eval-to-apply-pipeline.md`) | 1:30 |
-| 8 | Safety + transaction | UNKNOWN≠PASS; prepare ≠ commit; policy-ID rollback only | Manuscript; r43 safety docs | 2:00 |
-| 9 | Results (scoped) | RR↔FIFO apply **Observed** 61/61 mirror; R4.2 catalog **descriptive**; catalog recommendations **30/30 RR**; R47 real W1–W3 follow-up also **SELECT_RR** only (`avg_ready_wait` sole differentiating optimizer input; no real FIFO select / `MEASURED_FIFO_BETTER`) | Manuscript (`r48`); r43/r42/r47 artifacts | 2:30 |
-| 10 | Limitations | Two policies; NOT TESTED items above; author-host rebuild only | R4.8 manuscript §10 Threats to validity and limitations (`research/paper/r48-main-manuscript.md`); review readiness | 2:00 |
+| 8 | Safety + transaction | Single-threaded research VM; host-mediated prepare/validate/commit for a narrow guest policy word; UNKNOWN≠PASS; prepare ≠ commit; policy-ID rollback only (not full VM-state rollback); no SMP/HW atomicity claim | Manuscript §4–5; r43 safety docs | 2:00 |
+| 9 | Results (scoped) | R4.3: RR↔FIFO apply **Observed** 61/61 mirror. R4.2: 120/120 successful runs; six workloads; RR lower ready-wait in all six; inferential tests **NOT_PERFORMED**; catalog cells **30/30 RR**. Gate B: `SELECT_RR` but measured `NOT_EVALUATED`. R47 C/D1/D2: all completed profiles `SELECT_RR`; no real FIFO select / `MEASURED_FIFO_BETTER`. This project is unrelated to Amiga AROS (AROS Research Operating System). | Manuscript (`r48`) §7; r43/r42/r47 artifacts | 2:30 |
+| 10 | Limitations | Single-threaded research VM; no inferential testing; third-party reproduction **NOT TESTED**; no SMP/HW atomicity; policy-ID-only rollback (not full VM); R47: no real FIFO recommendation or `MEASURED_FIFO_BETTER`; W4 discontinued (not executed); two policies; author-host rebuild only | R4.8 manuscript §10 (`research/paper/r48-main-manuscript.md`) | 2:00 |
 | 11 | Close | OS platform + honest AROS research boundary; next steps | — | 1:00 |
+
+**Speaker notes (slide 9 only):** D1 preserved 300k step-cap failure (`INSUFFICIENT_TELEMETRY`); separately approved 800k confirmatory completed—do **not** treat 800k as making the 300k attempt successful. W4 discontinued and not executed.
 
 **Optional live demo (≤2 min, if time):** `build/haeun-vm.exe build/process_desktop.hxf --apps --persist --viewer` after local `make` (not a third-party claim).
 
 ---
 
-## Historical outline (R4.3 era, 12–15 min) — retained for provenance
+## Historical outline (R4.3 era, 12–15 min) — provenance only; not part of the 20-minute talk
 
-The table below is the earlier AROS-only outline. Slide 10’s “dirty tree / HEAD worktree NOT TESTED” reflected the **R4.3 draft** moment; the current public tip is tag `v4.6.0` at `0b7fead…` with author-host worktree evidence recorded later. Prefer the 20-minute table above for external talks.
+Supplementary historical material. Do **not** mix this table with the R4.8/R47 results above. Slide 10’s “dirty tree / HEAD worktree NOT TESTED” reflected the **R4.3 draft** moment; the current public tip is tag `v4.6.0` at `0b7fead…` with author-host worktree evidence recorded later. Prefer the 20-minute table above for external talks.
 
 | # | Title | Message | Evidence | Time |
 |---|-------|---------|----------|------|
