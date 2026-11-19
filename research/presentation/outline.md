@@ -12,12 +12,12 @@
 | 2 | HAEUN-32 + C17 VM | Interpreter VM; ISA/MMU boundaries | README; architecture | 2:00 |
 | 3 | Isolation & faults | Process-v1 caps; user fault → ZOMBIE; containment | README contract; security/fault docs | 2:00 |
 | 4 | Runtime surface | Desktop/apps/SDK path (demo optional) | Quick Start; SDK docs | 2:00 |
-| 5 | Why AROS | Gap: measure vs *safe* runtime policy mutation | R4.5 manuscript §1 | 1:00 |
-| 6 | Guest/host split | Host evaluates/recommends; guest policy word is separate authority | Manuscript; F1/F3 | 1:30 |
-| 7 | SHADOW vs APPLY | SHADOW default → report only; APPLY opt-in → safety path | Manuscript; F1/F2 | 1:30 |
+| 5 | Why AROS | Gap: measure vs *safe* runtime policy mutation | R4.8 manuscript §1 Introduction (`research/paper/r48-main-manuscript.md`) | 1:00 |
+| 6 | Guest/host split | Host evaluates/recommends; guest policy word is separate authority | R4.8 §4–5; historical R4.5 F1/F3 (`research/figures/r45/f1-system-architecture.md`; `research/figures/r45/f3-safety-trust-boundary.md`) | 1:30 |
+| 7 | SHADOW vs APPLY | SHADOW default → report only; APPLY opt-in → safety path | R4.8 §4–5; historical R4.5 F1/F2 (`research/figures/r45/f1-system-architecture.md`; `research/figures/r45/f2-eval-to-apply-pipeline.md`) | 1:30 |
 | 8 | Safety + transaction | UNKNOWN≠PASS; prepare ≠ commit; policy-ID rollback only | Manuscript; r43 safety docs | 2:00 |
-| 9 | Results (scoped) | RR↔FIFO apply **Observed** 61/61 mirror; R4.2 catalog **descriptive** | Manuscript; r43/r42 artifacts | 2:30 |
-| 10 | Limitations | Two policies; NOT TESTED items above; author-host rebuild only | r45 limitations; review readiness | 2:00 |
+| 9 | Results (scoped) | RR↔FIFO apply **Observed** 61/61 mirror; R4.2 catalog **descriptive**; catalog recommendations **30/30 RR**; R47 real W1–W3 follow-up also **SELECT_RR** only (`avg_ready_wait` sole differentiating optimizer input; no real FIFO select / `MEASURED_FIFO_BETTER`) | Manuscript (`r48`); r43/r42/r47 artifacts | 2:30 |
+| 10 | Limitations | Two policies; NOT TESTED items above; author-host rebuild only | R4.8 manuscript §10 Threats to validity and limitations (`research/paper/r48-main-manuscript.md`); review readiness | 2:00 |
 | 11 | Close | OS platform + honest AROS research boundary; next steps | — | 1:00 |
 
 **Optional live demo (≤2 min, if time):** `build/haeun-vm.exe build/process_desktop.hxf --apps --persist --viewer` after local `make` (not a third-party claim).

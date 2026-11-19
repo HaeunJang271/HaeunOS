@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://haeunos.local/schemas/r47-discrimination-cell.json",
+  "title": "R4.7 Recommendation Discrimination Cell",
+  "description": "One synthetic, baseline, workload, or sensitivity cell. Recommendation decisions are distinct from measured-outcome labels. Does not invent telemetry beyond existing eval/opt fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "campaign",
+    "track",
+    "decision",
+    "min_improve",
+    "evidence_class",
+    "limitations"
+  ],
+  "properties": {
+    "campaign": {
+      "type": "string",
+      "const": "r47-discrimination"
+    },
+    "track": {
+      "type": "string",
+      "enum": ["synthetic", "baseline", "workload", "sensitivity"]
+    },
+    "workload": {
+      "type": "string",
+      "description": "Catalog name, W1-W4 id, or synthetic fixture id. W1-W4 are proposed unless evidence_class is OBSERVED."
+    },
+    "profile": {
+      "type": "string",
+      "description": "Frozen profile name or declared sens_* name."
+    },
+    "reps": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "decision": {
+      "type": "string",
+      "description": "Recommendation decision enum (uppercase).",
+      "enum": [
+        "SELECT_RR",
+        "SELECT_FIFO",
+        "SCORE_EQUIVALENCE",
+        "NO_DECISION",
+        "INCONCLUSIVE",
+        "INSUFFICIENT_TELEMETRY"
+      ]
+    },
+    "recommended_policy": {
+      "type": ["integer", "null"],
+      "enum": [0, 1, null],
+      "description": "0=RR, 1=FIFO; null when no SELECT."
+    },
+    "score_rr": { "type": ["number", "null"] },
+    "score_fifo": { "type": ["number", "null"] },
+    "score_gap": {
+      "type": ["number", "null"],
+      "description": "score_rr - score_fifo when both valid."
+    },
+    "min_improve": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "RR": { "$ref": "#/$defs/policyMetrics" },
+        "FIFO": { "$ref": "#/$defs/policyMetrics" }
+      }
+    },
+    "measured_outcomes": {
+      "type": "object",
+      "description": "Independent of decision/score fields. Uses only predeclared tolerances from the R4.7.41 spec.",
+      "additionalProperties": false,
+      "properties": {
+        "ready": { "$ref": "#/$defs/measuredLabel" },
+        "jain": { "$ref": "#/$defs/measuredLabel" },
+        "dispatch": { "$ref": "#/$defs/measuredLabel" },
+        "completed": { "$ref": "#/$defs/measuredLabel" },
+        "overall": { "$ref": "#/$defs/measuredLabel" }
+      }
+    },
+    "evidence_class": {
+      "type": "string",
+      "enum": ["SYNTHETIC", "OBSERVED", "NOT_TESTED"]
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "optionalNumber": {
+      "type": ["number", "null"]
+    },
+    "policyMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Means and descriptive stats from existing optimizer/eval metrics only.",
+      "properties": {
+        "ready_mean": { "$ref": "#/$defs/optionalNumber" },
+        "ready_median": { "$ref": "#/$defs/optionalNumber" },
+        "ready_min": { "$ref": "#/$defs/optionalNumber" },
+        "ready_max": { "$ref": "#/$defs/optionalNumber" },
+        "ready_stddev": { "$ref": "#/$defs/optionalNumber" },
+        "jain_mean": { "$ref": "#/$defs/optionalNumber" },
+        "dispatch_mean": { "$ref": "#/$defs/optionalNumber" },
+        "completed_mean": { "$ref": "#/$defs/optionalNumber" }
+      }
+    },
+    "measuredLabel": {
+      "type": "string",
+      "enum": [
+        "MEASURED_RR_BETTER",
+        "MEASURED_FIFO_BETTER",
+        "MEASURED_EQUIVALENCE",
+        "NOT_EVALUATED"
+      ]
+    }
+  }
+}

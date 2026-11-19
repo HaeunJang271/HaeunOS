@@ -97,19 +97,30 @@ haeun-vm <hxf>|--firmware <hfw> [--disk IMG] [--root-hash HEX]
 - [Security](docs/security-v1.md) · [Isolation](docs/security-isolation-v1.md) · [Faults](docs/fault-handling-v1.md)
 - Milestone notes: [apps](docs/apps-v1.md), [reliability](docs/reliability-v1.md), and earlier `docs/*-v1.md` series
 
-### Research — AROS (current publication)
+### Research — AROS (frozen canonical release)
 
-Host-assisted **AROS** (evaluate → recommend → safety-validate → transactional apply) is published as the R4.5/R4.6 research package on tag `v4.6.0`. Start here for external review:
+Host-assisted **AROS** (evaluate → recommend → safety-validate → transactional apply) is published as the R4.5/R4.6 research package on tag `v4.6.0`. That tagged package remains the **immutable historical release** for external review of the frozen publication.
 
 | Role | Document |
 |------|----------|
-| **Canonical manuscript** | [research/paper/r45-main-manuscript.md](research/paper/r45-main-manuscript.md) |
+| **Frozen canonical manuscript** | [research/paper/r45-main-manuscript.md](research/paper/r45-main-manuscript.md) |
 | **Reproduction guide** | [research/reproduction/r45/README.md](research/reproduction/r45/README.md) |
 | **Release notes (R4.6)** | [docs/r46-release-notes.md](docs/r46-release-notes.md) |
 | **Publication state clarification** | [docs/r46-publication-state-clarification.md](docs/r46-publication-state-clarification.md) |
 | **Review readiness** | [docs/r45-review-readiness.md](docs/r45-review-readiness.md) |
 
 Supporting package paths (figures, tables, limitations) are listed from the reproduction README and `docs/r46-release-manifest.json`.
+
+### Research — AROS revised manuscript (post-v4.6.0 candidate)
+
+R4.8 revises claim framing and incorporates the R47 post-publication recommendation-discrimination follow-up. These paths are a **local revision candidate**. They do **not** replace tag `v4.6.0` or the frozen R4.5/R4.6 package until they are committed and present on the published tip.
+
+| Role | Document |
+|------|----------|
+| **Revised manuscript (R4.8.3)** | [research/paper/r48-main-manuscript.md](research/paper/r48-main-manuscript.md) |
+| **R47 follow-up evidence report** | [docs/r47-final-evidence-report.md](docs/r47-final-evidence-report.md) |
+| **R47 experiment index** | [research/experiments/r47-discrimination/README.md](research/experiments/r47-discrimination/README.md) |
+| **Presentation outline** | [research/presentation/outline.md](research/presentation/outline.md) |
 
 ### Research — historical AROS drafts (R4.0–R4.3)
 
