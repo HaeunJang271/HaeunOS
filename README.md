@@ -17,20 +17,11 @@ HAEUN-OS is a research operating-system stack built around a custom **32-bit gue
 
 Intentional caps and host constraints: [docs/limitations.md](docs/limitations.md).
 
-### Build and execution model
-
-| Host | What runs |
-|------|-----------|
-| **Linux / POSIX** | Headless CLI VM (`build/haeun-vm`). Interactive `--viewer` uses a **stub** ([`src/vm_viewer_stub.c`](src/vm_viewer_stub.c)). Framebuffer snapshots use `--fb-dump` ([`src/fb_dump.c`](src/fb_dump.c), [`src/main.c`](src/main.c)). |
-| **Windows** | Same CLI plus interactive **Win32 GDI viewer** (`--viewer`; [`src/vm_viewer_win32.c`](src/vm_viewer_win32.c)). |
-
-Do not confuse “`--fb-dump` works on Linux (including via `make test`)” with “interactive Win32 viewer works on Linux.”
-
-Make selects viewer sources by OS ([`Makefile`](Makefile) Win32 vs stub).
-
 ### Linux Quick Start
 
 Requires a C17 compiler, GNU Make, and Python 3. CI uses Ubuntu 24.04 with `build-essential` and Make ([`.github/workflows/linux-ci.yml`](.github/workflows/linux-ci.yml)).
+
+Linux interactive `--viewer` is a **stub**, not a supported interactive viewer. Linux CI does **not** validate physical HID or the Win32 viewer. See [Build and execution model](#build-and-execution-model).
 
 **1. Build**
 
@@ -72,6 +63,40 @@ python3 tests/m7_guest_gui_tests.py ./build/haeun-vm
 # ./build/haeun-vm ./build/gui_demo.hxf --gui --user --fb-dump ./build/gui_demo.ppm
 ```
 
+### Headline Results
+
+| Area | Result | Scope | Source |
+|------|--------|-------|--------|
+| Linux CI | Ubuntu 24.04 automated build and test workflow | Runs `make clean`, `make all`, and `make test`; this describes workflow coverage, not a historical success count | [`.github/workflows/linux-ci.yml`](.github/workflows/linux-ci.yml) |
+| Win32 manual validation | **6 PASS / 3 NOT TESTED** | 9-step checklist; steps 6, 7, and 9 remain untested | [`docs/m22.4-manual-validation.md`](docs/m22.4-manual-validation.md) |
+| R47 confirmatory experiments | **300** total runs | W1/W2/W3, **100** runs per campaign | [`docs/r47-final-evidence-report.md`](docs/r47-final-evidence-report.md) |
+| R47 policy tally | **50/50/0** per policy per campaign | requested/success/fail for RR and FIFO separately | same report |
+| R47 discrimination | **H5 not met**; no `SELECT_FIFO` cells | All reported real cells selected **RR**; **not** scheduler performance superiority | same report |
+
+Automated CI and manual Win32 validation are **separate**; do not combine them into one success rate. Details: [Validation and test coverage](#validation-and-test-coverage), [R47 results](#r47-results).
+
+### AROS at a Glance
+
+**AROS** is a **host-assisted** research framework for evaluating and optionally applying guest scheduling-policy changes. It is **not** the guest OS name and is **unrelated** to Amiga AROS.
+
+- **SHADOW** is the default: evaluate/report **without** writing policy.
+- **APPLY** requires explicit opt-in through prepare/validate/commit (`haeun_recfg_*` / `haeun_opt_apply`).
+- Recommendation alone does **not** authorize a write.
+- AROS does **not** claim autonomous always-on policy selection.
+
+Frozen research baseline: annotated Git tag [`v4.6.0`](https://github.com/HaeunJang271/HaeunOS/tree/v4.6.0) (not a GitHub Release object). Full detail: [AROS research details](#aros-research-details).
+
+### Build and execution model
+
+| Host | What runs |
+|------|-----------|
+| **Linux / POSIX** | Headless CLI VM (`build/haeun-vm`). Interactive `--viewer` uses a **stub** ([`src/vm_viewer_stub.c`](src/vm_viewer_stub.c)). Framebuffer snapshots use `--fb-dump` ([`src/fb_dump.c`](src/fb_dump.c), [`src/main.c`](src/main.c)). |
+| **Windows** | Same CLI plus interactive **Win32 GDI viewer** (`--viewer`; [`src/vm_viewer_win32.c`](src/vm_viewer_win32.c)). |
+
+Do not confuse "`--fb-dump` works on Linux (including via `make test`)" with "interactive Win32 viewer works on Linux."
+
+Make selects viewer sources by OS ([`Makefile`](Makefile) Win32 vs stub).
+
 ### Windows Viewer Demo
 
 Interactive desktop requires Windows (GDI viewer). `make images` does **not** produce `process_desktop.hxf`. Build the VM, then the desktop image with [`tools/build_process_desktop.py`](tools/build_process_desktop.py) (usage: `build_process_desktop.py <out.hxf>`; creates parent dirs as needed):
@@ -94,22 +119,20 @@ Recorded partial manual evidence: [docs/assets/haeunos-demo.gif](docs/assets/hae
 
 These layers are **separate**. Do not combine them into one success rate.
 
-#### 1. Automated Linux CI
+#### Automated Linux CI
 
 - Host: **Ubuntu 24.04** ([`.github/workflows/linux-ci.yml`](.github/workflows/linux-ci.yml)).
 - Steps: `make clean`, `make all`, `make test`.
 - `make test` runs many unit/process tests, including Python tests that invoke `haeun-vm` with **`--fb-dump`** (see [`Makefile`](Makefile) test recipe).
 - CI does **not** validate physical keyboard/mouse HID or the interactive Win32 viewer.
 
-As observed during audit: **14** consecutive successful `Linux CI` runs on `main` were listed via GitHub Actions with **no failures** in that query window. This is not a guarantee over deleted runs or unbounded history.
-
-#### 2. Manual Win32 viewer validation
+#### Manual Win32 viewer validation
 
 - Checklist: [docs/m22.4-manual-validation.md](docs/m22.4-manual-validation.md) (9 steps).
-- Recorded session evidence: **6 PASS** (steps 1–5 and 8), **3 NOT TESTED** (steps 6, 7, 9 — repeat launch, mouse-focus switching, 5-minute soak).
+- Recorded session evidence: **6 PASS** (steps 1–5 and 8), **3 NOT TESTED** (steps 6, 7, and 9 — repeat launch, mouse-focus switching, 5-minute soak).
 - Scripted `--input-script` / PPM OCR paths are **not** physical HID PASS.
 
-### AROS research
+### AROS research details
 
 **AROS** here is a **host-assisted** research framework for evaluating and (optionally) applying guest scheduling-policy changes. It is **not** the guest OS name and **not** Amiga AROS.
 
@@ -144,10 +167,10 @@ This is a **technical / negative** discrimination outcome under the frozen optim
 | Kind | Identity |
 |------|----------|
 | **Product version** | [`VERSION`](VERSION) = `1.0.0` (there is **no** Git tag named `v1.0.0` in this repository) |
-| **AROS research baseline** | Git tag `v4.6.0` (annotated; frozen documentation package) |
+| **AROS research baseline** | Git tag `v4.6.0` (annotated; frozen documentation package; not a GitHub Release object) |
 | **R4.8** | Research manuscript / technical report revision on `main` ([`research/paper/r48-main-manuscript.md`](research/paper/r48-main-manuscript.md)) |
 
-These are **research manuscripts / technical reports**, not peer-reviewed or externally published journal claims.
+These are **research manuscripts / technical reports**, not peer-reviewed or externally published journal papers.
 
 | Role | Document |
 |------|----------|
@@ -170,13 +193,15 @@ Submission **target**: Kernel Devroom (not an acceptance claim). Materials: [res
 - AROS does **not** autonomously APPLY policy by default (SHADOW default).
 - Broader caps: [docs/limitations.md](docs/limitations.md).
 
-### Requirements
+### Requirements and documents
+
+**Requirements**
 
 - C17 compiler, GNU Make, Python 3
 - Windows: `pwsh`, WinSock, GDI (`-luser32 -lgdi32`) for interactive viewer
 - Make is the authoritative path for the full test graph (CMake covers an older subset)
 
-### Documents
+**Documents**
 
 - [Getting started](docs/getting-started.md) · [Limitations](docs/limitations.md) · [Release notes 1.0](docs/release-notes-1.0.md)
 - [Architecture](docs/architecture.md) · [Boot sequence](docs/boot-sequence.md) · [Developer SDK](sdk/docs/README.md)
