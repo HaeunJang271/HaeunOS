@@ -26,9 +26,14 @@ Release 1.0 is a Make-based stack (`make all`, `make test`, `make release`, `mak
 - **Networking** — Socket ECALLs with `--net` / `--net-real`; external DNS remains opt-in (`HAEUN_NET_EXTERNAL=1`).
 - **Developer SDK** — `make sdk` produces `dist/haeun-sdk-1.0.0/` and the `haeun` CLI for external guest apps without editing the kernel (`tests/m19_sdk_tests.py`).
 
-### FOSDEM 2027 (Kernel Devroom) presentation
+### FOSDEM 2027 presentation materials
 
-Materials for a HaeunOS **1.0** systems talk (isolation, fault containment, desktop/SDK) live under [research/presentation/fosdem-2027/](research/presentation/fosdem-2027/). That folder is separate from the AROS research talk outline.
+Materials for a HaeunOS **1.0** systems talk (isolation, fault containment, desktop/SDK; submission target: Kernel Devroom) are available under [research/presentation/fosdem-2027/](research/presentation/fosdem-2027/). That folder is separate from the AROS research talk outline.
+
+- [Five-minute slide deck](research/presentation/fosdem-2027/HaeunOS_FOSDEM_5min_Talk_Revised.pptx)
+- [Korean-English speaker script](research/presentation/fosdem-2027/HaeunOS_FOSDEM_5min_Script_KO_EN_Final.docx)
+- [Korean-English Q&A guide](research/presentation/fosdem-2027/HaeunOS_FOSDEM_QA_10min_KO_EN_Final_checked.docx)
+- [Artifact inventory and evidence](research/presentation/fosdem-2027/README.md)
 
 Honest framing for that audience:
 
@@ -36,8 +41,6 @@ Honest framing for that audience:
 - MMU/TLB, process-v1 isolation, and user-process fault containment are in scope.
 - **Not** a microkernel; **not** bare-metal; **not** Amiga AROS.
 - Physical keyboard/mouse validation remains **NOT TESTED** until [docs/m22.4-manual-validation.md](docs/m22.4-manual-validation.md) is filled after live Win32 viewer use. Scripted tests and PPM dumps are not physical HID PASS.
-
-Slide deck / speaker / Q&A binaries for FOSDEM are listed as **MISSING** in that directory README until verified artifacts are added.
 
 ### AROS Research Framework
 
