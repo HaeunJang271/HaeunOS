@@ -1,6 +1,6 @@
 # HaeunOS 1.0 — FOSDEM 2027 Kernel Devroom materials
 
-Presentation track target: **FOSDEM Kernel Devroom** (systems / research OS demo).
+Submission target: **FOSDEM Kernel Devroom** (systems / research OS demo; not an acceptance claim).
 This directory is for **HaeunOS Release 1.0** (VM + process isolation + desktop/SDK).
 It is **not** a replacement for the separate AROS research package under `research/presentation/outline.md` and tag `v4.6.0`.
 
@@ -25,10 +25,23 @@ It is **not** a replacement for the separate AROS research package under `resear
 |------|--------|
 | `README.md` | Present (this file) |
 | `demo-checklist.md` | Present |
-| `evidence/README.md` | Present (pointers only; no fabricated results) |
-| `slides.pptx` | **MISSING** — no verified FOSDEM Kernel Devroom deck in the workspace |
-| `speaker-script-ko-en.docx` | **MISSING** — no verified FOSDEM speaker script in the workspace |
-| `qa-ko-en.docx` | **MISSING** — no verified FOSDEM Q&A document in the workspace |
+| `HaeunOS_FOSDEM_5min_Talk_Revised.pptx` | **Verified** — 6 slides; slide 4 embeds two terminal captures; slide 5 embeds a 320×180 HAEUN-OS framebuffer |
+| `HaeunOS_FOSDEM_5min_Script_KO_EN_Final.docx` | **Verified** — bilingual 5-minute speaker script (EN spoken / KO practice) |
+| `HaeunOS_FOSDEM_QA_10min_KO_EN_Final_checked.docx` | **Verified** — bilingual Q&A guide (checked edition) |
+| `evidence/` | **Verified** — three capture PNGs plus `evidence/README.md` (see below) |
+
+### PPTX evidence check (local inspection)
+
+| Slide | Embedded media | Content check |
+|-------|----------------|---------------|
+| 4 — When a user process faults | `image1.png` (774×43), `image2.png` (698×32) | Terminal: `m17 process fault tests passed`; `build/process_fault.hxf` halt line |
+| 5 — What has been tested | `image3.png` (320×180) | HAEUN-OS desktop framebuffer (Welcome / Calculator·Editor·Files) |
+
+On-disk evidence counterparts (same visual content; PPT may recompress bytes):
+
+- `evidence/m17-test-pass.png`
+- `evidence/process-fault-output.png`
+- `evidence/desktop-framebuffer-320x180.png`
 
 Do **not** copy the R4.8 AROS talk (`HaeunOS_AROS_R4.8_*`) into this folder: that deck is a different research story (policy-word safety / SHADOW·APPLY).
 
