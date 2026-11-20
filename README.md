@@ -103,16 +103,16 @@ python3 tests/m7_guest_gui_tests.py ./build/haeun-vm
 
 Automated CI and manual Win32 validation are **separate**; do not combine them into one success rate. Details: [Validation and test coverage](#validation-and-test-coverage), [R47 results](#r47-results).
 
-### AROS at a Glance
+### HaeunOS AROS at a Glance
 
-**AROS** is a **host-assisted** research framework for evaluating and optionally applying guest scheduling-policy changes. It is **not** the guest OS name and is **unrelated** to Amiga AROS.
+**HaeunOS AROS** is a **host-assisted** research framework for evaluating and optionally applying guest scheduling-policy changes. It is **not** the guest OS name and is **unrelated** to Amiga AROS.
 
 - **SHADOW** is the default: evaluate/report **without** writing policy.
 - **APPLY** requires explicit opt-in through prepare/validate/commit (`haeun_recfg_*` / `haeun_opt_apply`).
 - Recommendation alone does **not** authorize a write.
-- AROS does **not** claim autonomous always-on policy selection.
+- HaeunOS AROS does **not** claim autonomous always-on policy selection.
 
-Frozen research baseline: annotated Git tag [`v4.6.0`](https://github.com/HaeunJang271/HaeunOS/tree/v4.6.0) (not a GitHub Release object). Full detail: [AROS research details](#aros-research-details).
+Frozen research baseline: annotated Git tag [`v4.6.0`](https://github.com/HaeunJang271/HaeunOS/tree/v4.6.0) (not a GitHub Release object). Full detail: [HaeunOS AROS research details](#haeunos-aros-research-details).
 
 ### Build and execution model
 
@@ -160,15 +160,15 @@ These layers are **separate**. Do not combine them into one success rate.
 - The current live Win32 manual checklist records **9/9** steps as **PASS**. The demo GIF provides partial visual evidence for steps **1–5 and 8** only; steps **6, 7, and 9** are supported by separate live-session logs and screenshots. This does **not** imply comprehensive physical HID validation.
 - Scripted `--input-script` / PPM OCR paths are **not** physical HID PASS.
 
-### AROS research details
+### HaeunOS AROS research details
 
-**AROS** here is a **host-assisted** research framework for evaluating and (optionally) applying guest scheduling-policy changes. It is **not** the guest OS name and **not** Amiga AROS.
+**HaeunOS AROS** here is a **host-assisted** research framework for evaluating and (optionally) applying guest scheduling-policy changes. It is **not** the guest OS name and **not** Amiga AROS.
 
 - Host tooling may **evaluate** and **recommend** RR (`0`) or preemptive FIFO (`1`).
 - **SHADOW** is the default (evaluate/report without writing policy).
 - **APPLY** is explicit opt-in through prepare/validate/commit (`haeun_recfg_*` / `haeun_opt_apply`). Recommendation alone does not authorize a write.
 - On failure after write, rollback restores the **previous policy ID only** — not full VM/PCB/memory state.
-- AROS does **not** claim autonomous always-on policy selection, general scheduling-performance superiority, ACID/full-system rollback, SMP safety, hardware atomicity, or third-party reproduction.
+- HaeunOS AROS does **not** claim autonomous always-on policy selection, general scheduling-performance superiority, ACID/full-system rollback, SMP safety, hardware atomicity, or third-party reproduction.
 
 **Frozen research package:** annotated Git tag [`v4.6.0`](https://github.com/HaeunJang271/HaeunOS/tree/v4.6.0) (R4.5/R4.6; not a GitHub Release object). See [docs/r46-publication-state-clarification.md](docs/r46-publication-state-clarification.md).
 
@@ -194,8 +194,8 @@ This is a **technical / negative** discrimination outcome under the frozen optim
 
 | Kind | Identity |
 |------|----------|
-| **Product version** | [`VERSION`](VERSION) = `1.0.0` (there is **no** Git tag named `v1.0.0` in this repository) |
-| **AROS research baseline** | Git tag `v4.6.0` (annotated; frozen documentation package; not a GitHub Release object) |
+| **Product version** | [`VERSION`](VERSION) = `1.0.0` — **Unreleased development version** (no product Git tag `v1.0.0`; no official GitHub Release). Local `dist/haeun-os-1.0.0/` is a historical package without confirmed source-commit provenance. Distinct from HaeunOS AROS tag `v4.6.0`. |
+| **HaeunOS AROS research baseline** | Git tag `v4.6.0` (annotated; frozen research documentation package; **not** the product `1.0.0` identity; not a product GitHub Release) |
 | **R4.8** | Research manuscript / technical report revision on `main` ([`research/paper/r48-main-manuscript.md`](research/paper/r48-main-manuscript.md)) |
 
 These are **research manuscripts / technical reports**, not peer-reviewed or externally published journal papers.
@@ -218,7 +218,7 @@ Submission **target**: Kernel Devroom (not an acceptance claim). Materials: [res
 - Linux interactive viewer is **not** supported (stub only).
 - Manual Win32 validation covers the nine documented checklist scenarios. It does not establish comprehensive physical HID coverage or production-grade reliability.
 - R47 does **not** establish scheduler performance superiority; H5 was not met.
-- AROS does **not** autonomously APPLY policy by default (SHADOW default).
+- HaeunOS AROS does **not** autonomously APPLY policy by default (SHADOW default).
 - Broader caps: [docs/limitations.md](docs/limitations.md).
 
 ### Requirements and documents
@@ -246,4 +246,4 @@ haeun-vm <hxf>|--firmware <hfw> [--disk IMG] [--root-hash HEX]
 
 ## License
 
-[MIT](LICENSE) — product version [1.0.0](VERSION)
+[MIT](LICENSE) — product version [1.0.0](VERSION) (**Unreleased**; not a tagged GitHub Release)

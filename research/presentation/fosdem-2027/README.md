@@ -28,8 +28,9 @@ It is **not** a replacement for the separate AROS research package under `resear
 | `demo-checklist.md` | Present |
 | `HaeunOS_FOSDEM_5min_Talk_Revised.pptx` | **Verified** — 6 slides; slide 4 embeds two terminal captures; slide 5 embeds a 320×180 HAEUN-OS framebuffer |
 | `HaeunOS_FOSDEM_5min_Script_KO_EN_Final.docx` | **Verified** — bilingual 5-minute speaker script (EN spoken / KO practice) |
-| `HaeunOS_FOSDEM_QA_10min_KO_EN_Final_checked.pdf` | **Verified** — bilingual Q&A guide (checked edition PDF; 7 pages) |
-| `HaeunOS_FOSDEM_QA_10min_KO_EN_Final_checked.docx` | **NOT PRESENT** — DOCX copy is not in this directory; use the PDF above |
+| `HaeunOS_FOSDEM_5min_Script_KO_EN_Final.pdf` | **Verified** — PDF of the bilingual 5-minute speaker script (4 pages) |
+| `HaeunOS_FOSDEM_QA_10min_KO_EN_Final_checked.pdf` | **Verified** — bilingual Q&A guide (checked edition PDF; **4 pages**) |
+| `HaeunOS_FOSDEM_QA_10min_KO_EN_Final_checked.docx` | **Verified** — DOCX of the checked bilingual Q&A guide (same edition as the PDF) |
 | `evidence/` | **Verified** — three capture PNGs plus `evidence/README.md` (see below) |
 | `../../../docs/assets/haeunos-demo.gif` | **Verified** — short local Win32 viewer demo; visual coverage of checklist steps 1–5 and 8 only (**not** proof of all nine steps). Full checklist: **9 PASS** in `docs/m22.4-manual-validation.md` |
 

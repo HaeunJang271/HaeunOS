@@ -1,5 +1,7 @@
 # Release 1.0 acceptance log
 
+**Clarification:** Product [`VERSION`](../VERSION) is `1.0.0` (**Unreleased development version**). No product tag `v1.0.0` and no official GitHub product Release exist for this identity. The table below is the **historical M18-era** acceptance record as written at the time. Do **not** treat these PASS rows as validation of the current `HEAD` as an official `1.0.0` release, and do **not** infer a confirmed source commit for the local `dist/haeun-os-1.0.0/` package (provenance not established). AROS `v4.6.0` is unrelated to product `1.0.0`.
+
 Host: Windows 10 (build env for M18). Commands run from `dist/haeun-os-1.0.0/` unless noted.
 
 | Check | Result |
