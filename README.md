@@ -29,6 +29,22 @@ HAEUN-OS is a research operating-system stack built around a custom **32-bit gue
 
 Intentional caps and host constraints: [docs/limitations.md](docs/limitations.md).
 
+### What Makes HaeunOS Interesting?
+
+One of the central research questions in HaeunOS AROS is not simply which scheduling policy to choose, but **who is allowed to change the guest's policy and under what conditions**.
+
+The host-assisted AROS pipeline keeps three operations distinct:
+
+- **Evaluation** measures the available guest state and scheduling behavior.
+- **Recommendation** may suggest a policy, but a recommendation alone does **not** authorize a guest-state change.
+- **Application** is a separate, explicitly enabled operation. SHADOW is the default and reports results without writing the policy.
+
+When APPLY is explicitly requested, the change follows a separate **prepare → validate → commit** path. Validation is fail-closed: an UNKNOWN or failed result is not treated as PASS, and prepare does not itself perform the commit.
+
+This design is implemented for a deliberately narrow scope: changing the guest scheduling-policy word between **round-robin (RR)** and **preemptive FIFO** in a **single-threaded research VM**. It is not evidence of general scheduling-performance superiority, autonomous always-on policy selection, SMP safety, hardware atomicity, or full-system rollback.
+
+The interesting engineering question is therefore the separation of **measurement, recommendation, and authority to mutate state**, together with the explicit limits of the safety contract.
+
 ### Linux Quick Start
 
 Requires a C17 compiler, GNU Make, and Python 3. CI uses Ubuntu 24.04 with `build-essential` and Make ([`.github/workflows/linux-ci.yml`](.github/workflows/linux-ci.yml)).
