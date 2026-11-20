@@ -2,6 +2,8 @@
 
 [![Linux CI](https://github.com/HaeunJang271/HaeunOS/actions/workflows/linux-ci.yml/badge.svg?branch=main)](https://github.com/HaeunJang271/HaeunOS/actions/workflows/linux-ci.yml)
 
+<img src="docs/assets/haeunos-demo.gif" width="800" alt="HaeunOS desktop demo">
+
 ### Project Overview
 
 HAEUN-OS is an independent operating-system research project built around a custom 32-bit guest ISA (**HAEUN-32**) and a host-side C17 virtual machine. Guest instructions execute through the interpreter in `src/vm.c`; they are not executed natively by the host CPU. The guest kernel is **modular monolithic** (not a microkernel). HAEUN-OS is not presented as a native PC-bootable / bare-metal operating system.
