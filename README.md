@@ -2,101 +2,188 @@
 
 [![Linux CI](https://github.com/HaeunJang271/HaeunOS/actions/workflows/linux-ci.yml/badge.svg?branch=main)](https://github.com/HaeunJang271/HaeunOS/actions/workflows/linux-ci.yml)
 
-<img src="docs/assets/haeunos-demo.gif" width="800" alt="HaeunOS desktop demo">
+<img src="docs/assets/haeunos-demo.gif" width="800" alt="HaeunOS Win32 viewer demo (partial manual validation)">
 
-### Project Overview
+The GIF above is a **short local Win32 viewer session** (Calc / Editor / Files and clean Esc exit). It does **not** represent full product validation, Linux CI, or complete physical HID coverage. See [Validation and test coverage](#validation-and-test-coverage).
 
-HAEUN-OS is an independent operating-system research project built around a custom 32-bit guest ISA (**HAEUN-32**) and a host-side C17 virtual machine. Guest instructions execute through the interpreter in `src/vm.c`; they are not executed natively by the host CPU. The guest kernel is **modular monolithic** (not a microkernel). HAEUN-OS is not presented as a native PC-bootable / bare-metal operating system.
+### What is HaeunOS?
 
-HAEUN-OS is not affiliated with, derived from, or related to Amiga AROS (AROS Research Operating System). The acronym overlap is coincidental.
+HAEUN-OS is a research operating-system stack built around a custom **32-bit guest ISA (HAEUN-32)** and a **host-side C17 interpreter** in [`src/vm.c`](src/vm.c). Guest instructions are interpreted; they are not executed natively by the host CPU.
 
-### Why This Project Exists
+- Guest kernel model: **modular monolithic** research OS (not a microkernel).
+- **Not** RISC-V and **not** derived from RISC-V.
+- **Not** a native PC-bootable / bare-metal OS.
+- **Not** affiliated with Amiga AROS (AROS Research Operating System); any acronym overlap is coincidental.
 
-The project provides a controlled experimental environment for studying operating-system mechanisms where kernel behavior, process management, isolation, and runtime policy changes can be observed and tested on a research guest. A related research track investigates host-assisted evaluation of scheduling policies and safety-controlled mutation of a narrow guest policy word. Intentional v1 limits are listed in [docs/limitations.md](docs/limitations.md).
+Intentional caps and host constraints: [docs/limitations.md](docs/limitations.md).
 
-### What Actually Runs
+### Build and execution model
 
-Release 1.0 is a Make-based stack (`make all`, `make test`, `make release`, `make sdk`) that builds the host VM and guest images under `build/`. Features below are present in the current sources; corresponding unit/process tests exist in the Make `test` graph and/or `tests/` (this README does not assert a fresh green `make test` run). Caps and host constraints are in [docs/limitations.md](docs/limitations.md); the supported matrix is in [Release contract](#release-contract-supported).
+| Host | What runs |
+|------|-----------|
+| **Linux / POSIX** | Headless CLI VM (`build/haeun-vm`). Interactive `--viewer` uses a **stub** ([`src/vm_viewer_stub.c`](src/vm_viewer_stub.c)). Framebuffer snapshots use `--fb-dump` ([`src/fb_dump.c`](src/fb_dump.c), [`src/main.c`](src/main.c)). |
+| **Windows** | Same CLI plus interactive **Win32 GDI viewer** (`--viewer`; [`src/vm_viewer_win32.c`](src/vm_viewer_win32.c)). |
 
-- **HAEUN-32 ISA and MMU/TLB** — ISA v1–v4 interpretation with MMU/TLB paths in the host VM (`src/vm.c`, `src/trap.c`, MMU/TLB modules; Make builds/runs `mmu-tests` and `tlb-tests`).
-- **Firmware boot and HXF load** — Firmware disk boot (`--firmware` / `--disk`) and direct load of HXF guest programs (HAEUN executable format) via `build/haeun-vm` (Windows: `haeun-vm.exe`).
-- **Processes, scheduling, syscalls** — Process-v1 guest kernel with cooperative yield and timer preemption; guest ECALL (system-call) surface used by process images.
-- **Isolation and faults** — Address-space isolation and user-fault handling (including ZOMBIE paths); see `tests/m15_isolation_tests.c` and `tests/m17_fault_tests.c` / related process tests.
-- **Filesystem and FDs** — HFS with process file-descriptor ownership (`proc-hfs-tests` and related HFS tests).
-- **Framebuffer, window manager, viewer** — 320×180 framebuffer, window manager/chrome; interactive Win32 GDI viewer (`--viewer`). Non-Windows hosts have no supported interactive viewer (stub).
-- **Desktop shell and builtins** — `process_desktop.hxf` shell and Calculator / Editor / Files under `--apps` (scripted coverage plus a 28s Win32 viewer demo covering steps 1–5 and 8 of docs/m22.4-manual-validation.md; steps 6, 7, 9 remain NOT TESTED). Files lists registered app names (not a full file browser).
-- **Networking** — Socket ECALLs with `--net` / `--net-real`; external DNS remains opt-in (`HAEUN_NET_EXTERNAL=1`).
-- **Developer SDK** — `make sdk` produces `dist/haeun-sdk-1.0.0/` and the `haeun` CLI for external guest apps without editing the kernel (`tests/m19_sdk_tests.py`).
+Do not confuse “`--fb-dump` works on Linux (including via `make test`)” with “interactive Win32 viewer works on Linux.”
 
-### FOSDEM 2027 presentation materials
+Make selects viewer sources by OS ([`Makefile`](Makefile) Win32 vs stub).
 
-Materials for a HaeunOS **1.0** systems talk (isolation, fault containment, desktop/SDK; submission target: Kernel Devroom) are available under [research/presentation/fosdem-2027/](research/presentation/fosdem-2027/). That folder is separate from the AROS research talk outline.
+### Linux Quick Start
 
-- [Five-minute slide deck](research/presentation/fosdem-2027/HaeunOS_FOSDEM_5min_Talk_Revised.pptx)
-- [Korean-English speaker script](research/presentation/fosdem-2027/HaeunOS_FOSDEM_5min_Script_KO_EN_Final.docx)
-- [Korean-English Q&A guide](research/presentation/fosdem-2027/HaeunOS_FOSDEM_QA_10min_KO_EN_Final_checked.docx)
-- [Artifact inventory and evidence](research/presentation/fosdem-2027/README.md)
+Requires a C17 compiler, GNU Make, and Python 3. CI uses Ubuntu 24.04 with `build-essential` and Make ([`.github/workflows/linux-ci.yml`](.github/workflows/linux-ci.yml)).
 
-Honest framing for that audience:
-
-- Custom HAEUN-32 guest + host C17 interpreter; modular monolithic research OS.
-- MMU/TLB, process-v1 isolation, and user-process fault containment are in scope.
-- **Not** a microkernel; **not** bare-metal; **not** Amiga AROS.
-- Basic live keyboard flow (Calc, Editor, Files, clean Esc exit) is recorded in docs/assets/haeunos-demo.gif (steps 1–5, 8 in docs/m22.4-manual-validation.md); repeat-launch, mouse-focus, and 5-minute soak checks remain NOT TESTED.
-
-### AROS Research Framework
-
-**AROS** here is a host-assisted research framework for runtime scheduling-policy evaluation—not the guest OS name and not Amiga AROS. Host tooling scores and may recommend RR (`0`) or preemptive FIFO (`1`); SHADOW is the default (evaluate/report without writing policy). APPLY is explicit opt-in.
-
-Policy mutation targets the guest policy word at `0xA474` through a host-side request → prepare/validate → commit path (`haeun_recfg_*` / `haeun_opt_apply`). Recommendation alone does not authorize the write. The between-`haeun_vm_step()` safe point is a single-threaded design assumption for serialized commit, not a runtime gate inside `commit()`. On failure after write, rollback restores the previous policy ID only—not full VM/PCB/memory state.
-
-AROS does not claim autonomous always-on policy selection, general scheduling-performance superiority, ACID or full-system rollback, SMP safety, hardware atomicity, or third-party reproduction. Frozen publication: tag `v4.6.0` (R4.5/R4.6). Post-tag claim reframing: R4.8 on `main` (does not replace `v4.6.0`). See [Research — AROS (frozen canonical release)](#research-aros-frozen-canonical-release) below.
-
-## Quick start
-
-Shortest reliable sample path: `make all`, then run the hello HXF with the host VM binary (`build/haeun-vm.exe` on Windows, `build/haeun-vm` on POSIX).
+**1. Build**
 
 ```sh
 make clean
 make all
+```
+
+**2. Test** (same commands as Linux CI)
+
+```sh
 make test
-make release
-make sdk
 ```
 
-Run from the tree (Windows examples; drop `.exe` on POSIX):
+**3. Headless execution**
+
+Guest images are not produced by `make all` alone. Build sample images, then run the VM:
 
 ```sh
-build/haeun-vm.exe build/hello.hxf
-build/haeun-vm.exe --firmware build/boot.hfw --disk build/kernel_disk.raw
-build/haeun-vm.exe build/process_apps.hxf --apps
-build/haeun-vm.exe build/process_sdk.hxf --app path\to\app.hxf
+make images
+./build/haeun-vm ./build/hello.hxf
 ```
 
-Interactive 320×180 desktop (tiles → Calculator / Editor / Files; Win32 viewer):
+(`make images` runs `python tools/package_release.py --images-only` after `all`; see [`Makefile`](Makefile).)
+
+Firmware disk boot (after images exist):
 
 ```sh
-build/haeun-vm.exe build/process_desktop.hxf --apps --persist --viewer
+./build/haeun-vm --firmware ./build/boot.hfw --disk ./build/kernel_disk.raw
 ```
 
-- **Calculator** — digits, `+` (`=` key / keypad `+`), `-` (main or keypad), `x`, `/`, Enter (=), Backspace, Esc
-- **Editor** — type letters/digits (no commands); Space, Backspace, Esc closes
-- **Files** — shows registered app names only (not a full file browser); Esc closes
-- Desktop: keys `1`–`3` launch apps, Esc quits the shell (click the Win32 viewer, then the app window, for keyboard focus)
-- Apps open in the top band so the three tiles stay clickable; at most two apps at once (AS slot limit)
+**4. Framebuffer dump**
 
-Developer SDK (`dist/haeun-sdk-1.0.0/` after `make sdk`; run these from that directory):
+`--fb-dump` writes a **PPM** (binary P6) of the guest framebuffer. Headless `hello.hxf` is not the GUI dump path. The Make test graph exercises dump via [`tests/m7_guest_gui_tests.py`](tests/m7_guest_gui_tests.py), which builds `build/gui_demo.hxf` and runs:
 
 ```sh
-python haeun.py new my-app
-python haeun.py build
-python haeun.py verify build\app.hxf
-python haeun.py run build\app.hxf
+python3 tests/m7_guest_gui_tests.py ./build/haeun-vm
+# equivalent VM invocation performed by that test:
+# ./build/haeun-vm ./build/gui_demo.hxf --gui --user --fb-dump ./build/gui_demo.ppm
 ```
 
-See [sdk/docs/README.md](sdk/docs/README.md).
+### Windows Viewer Demo
 
-Or from the staged OS package `dist/haeun-os-1.0.0/` — see [docs/getting-started.md](docs/getting-started.md).
+Interactive desktop requires Windows (GDI viewer). `make images` does **not** produce `process_desktop.hxf`. Build the VM, then the desktop image with [`tools/build_process_desktop.py`](tools/build_process_desktop.py) (usage: `build_process_desktop.py <out.hxf>`; creates parent dirs as needed):
+
+```powershell
+make all
+python tools/build_process_desktop.py build/process_desktop.hxf
+.\build\haeun-vm.exe .\build\process_desktop.hxf --apps --persist --viewer
+```
+
+For `--apps` builtins, also run `make images` so `build/app_*.hxf` exist (see [`tools/package_release.py`](tools/package_release.py)).
+
+- Calculator / Editor / Files under `--apps` (Files lists **registered app names**, not a full file browser).
+- Keys `1`–`3` spawn apps when the shell is focused; Esc closes an app or shuts down the shell.
+- Focus the Win32 viewer (and the guest window) for keyboard input.
+
+Recorded partial manual evidence: [docs/assets/haeunos-demo.gif](docs/assets/haeunos-demo.gif). Checklist: [docs/m22.4-manual-validation.md](docs/m22.4-manual-validation.md).
+
+### Validation and test coverage
+
+These layers are **separate**. Do not combine them into one success rate.
+
+#### 1. Automated Linux CI
+
+- Host: **Ubuntu 24.04** ([`.github/workflows/linux-ci.yml`](.github/workflows/linux-ci.yml)).
+- Steps: `make clean`, `make all`, `make test`.
+- `make test` runs many unit/process tests, including Python tests that invoke `haeun-vm` with **`--fb-dump`** (see [`Makefile`](Makefile) test recipe).
+- CI does **not** validate physical keyboard/mouse HID or the interactive Win32 viewer.
+
+As observed during audit: **14** consecutive successful `Linux CI` runs on `main` were listed via GitHub Actions with **no failures** in that query window. This is not a guarantee over deleted runs or unbounded history.
+
+#### 2. Manual Win32 viewer validation
+
+- Checklist: [docs/m22.4-manual-validation.md](docs/m22.4-manual-validation.md) (9 steps).
+- Recorded session evidence: **6 PASS** (steps 1–5 and 8), **3 NOT TESTED** (steps 6, 7, 9 — repeat launch, mouse-focus switching, 5-minute soak).
+- Scripted `--input-script` / PPM OCR paths are **not** physical HID PASS.
+
+### AROS research
+
+**AROS** here is a **host-assisted** research framework for evaluating and (optionally) applying guest scheduling-policy changes. It is **not** the guest OS name and **not** Amiga AROS.
+
+- Host tooling may **evaluate** and **recommend** RR (`0`) or preemptive FIFO (`1`).
+- **SHADOW** is the default (evaluate/report without writing policy).
+- **APPLY** is explicit opt-in through prepare/validate/commit (`haeun_recfg_*` / `haeun_opt_apply`). Recommendation alone does not authorize a write.
+- On failure after write, rollback restores the **previous policy ID only** — not full VM/PCB/memory state.
+- AROS does **not** claim autonomous always-on policy selection, general scheduling-performance superiority, ACID/full-system rollback, SMP safety, hardware atomicity, or third-party reproduction.
+
+**Frozen research package:** annotated Git tag [`v4.6.0`](https://github.com/HaeunJang271/HaeunOS/tree/v4.6.0) (R4.5/R4.6; not a GitHub Release object). See [docs/r46-publication-state-clarification.md](docs/r46-publication-state-clarification.md).
+
+**R4.8** is a **post-`v4.6.0` claim-reframing revision on `main`**. It is **not** a new official release tag and does not replace `v4.6.0`.
+
+### R47 results
+
+Recommendation-discrimination follow-up (W1/W2/W3). Canonical report: [docs/r47-final-evidence-report.md](docs/r47-final-evidence-report.md); index: [research/experiments/r47-discrimination/README.md](research/experiments/r47-discrimination/README.md).
+
+| Item | Recorded fact |
+|------|----------------|
+| Confirmatory campaigns | Gates C (W1), D1 (W2), D2 (W3) |
+| Per campaign | **100** runs total = **50 RR + 50 FIFO** (10 reps × 5 profiles × 2 policies) |
+| Per-policy tally (each campaign) | requested/success/fail = **50/50/0** (RR and FIFO each) |
+| Total confirmatory | **300** runs (3 × 100) |
+| Excluded artifacts | Separate step-cap failure under `results/gate-d1/failure-300k/` (not in the confirmatory 300) |
+| H5 | **Not met** (negative result) |
+| Real cells | No `SELECT_FIFO`; reported cells selected **RR** |
+
+This is a **technical / negative** discrimination outcome under the frozen optimizer contract. It is **not** evidence of general scheduler performance superiority.
+
+### Research documents and versioning
+
+| Kind | Identity |
+|------|----------|
+| **Product version** | [`VERSION`](VERSION) = `1.0.0` (there is **no** Git tag named `v1.0.0` in this repository) |
+| **AROS research baseline** | Git tag `v4.6.0` (annotated; frozen documentation package) |
+| **R4.8** | Research manuscript / technical report revision on `main` ([`research/paper/r48-main-manuscript.md`](research/paper/r48-main-manuscript.md)) |
+
+These are **research manuscripts / technical reports**, not peer-reviewed or externally published journal claims.
+
+| Role | Document |
+|------|----------|
+| Frozen R4.5 manuscript | [research/paper/r45-main-manuscript.md](research/paper/r45-main-manuscript.md) |
+| Publication state clarification | [docs/r46-publication-state-clarification.md](docs/r46-publication-state-clarification.md) |
+| R4.6 release notes | [docs/r46-release-notes.md](docs/r46-release-notes.md) |
+| R4.8 revised manuscript | [research/paper/r48-main-manuscript.md](research/paper/r48-main-manuscript.md) |
+| R47 evidence | [docs/r47-final-evidence-report.md](docs/r47-final-evidence-report.md) |
+
+### FOSDEM 2027 materials
+
+Submission **target**: Kernel Devroom (not an acceptance claim). Materials: [research/presentation/fosdem-2027/](research/presentation/fosdem-2027/).
+
+### Limitations
+
+- Not bare-metal / not PC-bootable; guest ISA is custom HAEUN-32 (not RISC-V).
+- Linux interactive viewer is **not** supported (stub only).
+- Manual Win32 HID validation remains **partial** (6 PASS / 3 NOT TESTED).
+- R47 does **not** establish scheduler performance superiority; H5 was not met.
+- AROS does **not** autonomously APPLY policy by default (SHADOW default).
+- Broader caps: [docs/limitations.md](docs/limitations.md).
+
+### Requirements
+
+- C17 compiler, GNU Make, Python 3
+- Windows: `pwsh`, WinSock, GDI (`-luser32 -lgdi32`) for interactive viewer
+- Make is the authoritative path for the full test graph (CMake covers an older subset)
+
+### Documents
+
+- [Getting started](docs/getting-started.md) · [Limitations](docs/limitations.md) · [Release notes 1.0](docs/release-notes-1.0.md)
+- [Architecture](docs/architecture.md) · [Boot sequence](docs/boot-sequence.md) · [Developer SDK](sdk/docs/README.md)
+- [Graphics API](docs/graphics-api.md) · [Networking](docs/networking.md) · [Filesystem](docs/filesystem.md)
+- [Isolation](docs/security-isolation-v1.md) · [Faults](docs/fault-handling-v1.md) · [Manual Win32 validation](docs/m22.4-manual-validation.md)
+
+Optional packaging: `make release`, `make sdk` (see [docs/getting-started.md](docs/getting-started.md), [sdk/docs/README.md](sdk/docs/README.md)).
 
 ```text
 haeun-vm <hxf>|--firmware <hfw> [--disk IMG] [--root-hash HEX]
@@ -104,79 +191,6 @@ haeun-vm <hxf>|--firmware <hfw> [--disk IMG] [--root-hash HEX]
   [--viewer] [--persist] [--max-steps N] [--user] [--fb-dump PPM]
 ```
 
-## Requirements
-
-- C17 compiler, GNU Make, Python 3
-- Windows: `pwsh`, WinSock (`-lws2_32`), GDI viewer (`-luser32 -lgdi32`)
-- Make is the supported path for full M7–M17 tests (CMake covers an older subset)
-
-## Release contract (supported)
-
-| Area | Status |
-|---|---|
-| ISA v1–v4 + MMU/TLB | Supported |
-| Firmware disk boot + HXF direct load | Supported |
-| Process-v1 scheduler / syscalls | Supported |
-| HFS + process FD ownership | Supported |
-| GUI FB 320×180, WM, chrome, Win32 viewer | Supported |
-| M22 desktop shell (`process_desktop.hxf`) | Supported (`--persist --viewer`) |
-| Sockets + `--net` / `--net-real` | Supported |
-| `--apps` builtins (calc / edit / files) | Supported (persistent until Esc/CLOSE) |
-| M20.5 `process_launch.hxf` GUI launcher | Supported (APP_INFO/RUN/CTRL) |
-| M20.6 Service Manager (ECALL 41–46) | Supported (see `docs/m20-service-manager-report.md`) |
-| M20.7 File Manager (ECALL 47–50) | Supported (see `docs/m20-file-manager-report.md`) |
-| `--app` + Developer SDK (`haeun` CLI) | Supported |
-| M20 events / IPC / WIN_DRAW_TEXT / FILL_RECT | Supported (see `docs/m20-completion-report.md`) |
-| M21 persistent runtime + input scripts | Supported |
-| M15 isolation + M17 user fault → ZOMBIE | Supported |
-| GUI+net mux merge | Supported |
-
-## Documents
-
-- [Getting started](docs/getting-started.md)
-- [Developer SDK](sdk/docs/README.md)
-- [Release notes 1.0](docs/release-notes-1.0.md)
-- [Limitations](docs/limitations.md)
-- [Architecture](docs/architecture.md) · [Boot sequence](docs/boot-sequence.md)
-- [Applications](docs/applications.md) · [HXF](docs/hxf-format.md) · [Userland API](docs/userland-api.md)
-- [Graphics API](docs/graphics-api.md) · [Networking](docs/networking.md) · [Filesystem](docs/filesystem.md)
-- [Security](docs/security-v1.md) · [Isolation](docs/security-isolation-v1.md) · [Faults](docs/fault-handling-v1.md)
-- Milestone notes: [apps](docs/apps-v1.md), [reliability](docs/reliability-v1.md), and earlier `docs/*-v1.md` series
-
-### Research — AROS (frozen canonical release)
-
-Host-assisted **AROS** (evaluate → recommend → safety-validate → scoped policy-word apply) is published as the R4.5/R4.6 research package on tag `v4.6.0`. That tagged package remains the **immutable historical release** for external review of the frozen publication.
-
-| Role | Document |
-|------|----------|
-| **Frozen canonical manuscript** | [research/paper/r45-main-manuscript.md](research/paper/r45-main-manuscript.md) |
-| **Reproduction guide** | [research/reproduction/r45/README.md](research/reproduction/r45/README.md) |
-| **Release notes (R4.6)** | [docs/r46-release-notes.md](docs/r46-release-notes.md) |
-| **Publication state clarification** | [docs/r46-publication-state-clarification.md](docs/r46-publication-state-clarification.md) |
-| **Review readiness** | [docs/r45-review-readiness.md](docs/r45-review-readiness.md) |
-
-Supporting package paths (figures, tables, limitations) are listed from the reproduction README and `docs/r46-release-manifest.json`.
-
-### Research — AROS revised manuscript (post-v4.6.0)
-
-R4.8 revises claim framing and incorporates the R47 post-publication recommendation-discrimination follow-up. These paths are present on `main` as a **post-`v4.6.0` revision**. They do **not** replace tag `v4.6.0` or the frozen R4.5/R4.6 package.
-
-| Role | Document |
-|------|----------|
-| **Revised manuscript (R4.8)** | [research/paper/r48-main-manuscript.md](research/paper/r48-main-manuscript.md) |
-| **R47 follow-up evidence report** | [docs/r47-final-evidence-report.md](docs/r47-final-evidence-report.md) |
-| **R47 experiment index** | [research/experiments/r47-discrimination/README.md](research/experiments/r47-discrimination/README.md) |
-| **Presentation outline** | [research/presentation/outline.md](research/presentation/outline.md) |
-
-### Research — historical AROS drafts (R4.0–R4.3)
-
-These remain for provenance; they are **not** the current publication manuscript:
-
-- [R4.3 final report](docs/r43-final-report.md) (historical)
-- [R4.3 active-apply audit](docs/r43-active-apply-audit.md) (historical)
-- [R4.3 paper draft](research/paper/main.md) (historical draft; superseded by the R4.5 manuscript above)
-- [R4.3 external reproduction notes](research/reproduction/r43-external-reproduction.md) (prior reproduction path)
-
 ## License
 
-[MIT](LICENSE) — version [1.0.0](VERSION)
+[MIT](LICENSE) — product version [1.0.0](VERSION)
