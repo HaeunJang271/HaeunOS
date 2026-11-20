@@ -17,7 +17,7 @@ It is **not** a replacement for the separate AROS research package under `resear
 | Microkernel | **No** — do not describe HaeunOS as a microkernel |
 | Bare-metal / PC-bootable OS | **No** |
 | Related to Amiga AROS | **No** (acronym coincidence only) |
-| Physical HID validation complete | **No claim** unless a filled manual checklist exists |
+| Physical HID validation status | **Partial** — 28s local Win32 demo (../../../docs/assets/haeunos-demo.gif) covers steps 1–5 and 8; repeat-launch, mouse-focus, and 5-minute soak remain NOT TESTED |
 
 ## Directory inventory
 
@@ -29,6 +29,7 @@ It is **not** a replacement for the separate AROS research package under `resear
 | `HaeunOS_FOSDEM_5min_Script_KO_EN_Final.docx` | **Verified** — bilingual 5-minute speaker script (EN spoken / KO practice) |
 | `HaeunOS_FOSDEM_QA_10min_KO_EN_Final_checked.docx` | **Verified** — bilingual Q&A guide (checked edition) |
 | `evidence/` | **Verified** — three capture PNGs plus `evidence/README.md` (see below) |
+| `../../../docs/assets/haeunos-demo.gif` | **Verified** — 28s local Win32 viewer demo covering manual-validation steps 1–5 and 8; steps 6, 7, 9 remain NOT TESTED |
 
 ### PPTX evidence check (local inspection)
 
