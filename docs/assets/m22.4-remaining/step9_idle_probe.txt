@@ -1,0 +1,6 @@
+step9_start_observed=2026-11-21T01:24:45+09:00
+step9_check_time=2026-11-21T01:33:54.7159248+09:00
+uptime_min=9.16
+responding=True
+main_window_title=H
+AppActivate=False

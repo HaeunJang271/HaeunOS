@@ -1,0 +1,10 @@
+apps: registered calc (1224 bytes)
+apps: registered edit (944 bytes)
+apps: registered files (456 bytes)
+apps: registered svcidle (172 bytes)
+apps: registered filemgr (1144 bytes)
+persist: run_budget=18446744073709551615 (viewer quantum=slice)
+app-env: spawn edit pid=2 slot=1
+app-env: spawn calc pid=3 slot=2
+viewer: frames=355648 keys=8 mice=51 focus_hits=2 focus_id=-1
+guest halted after 99173116 instructions; r1=0x00000000

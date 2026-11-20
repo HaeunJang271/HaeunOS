@@ -1,0 +1,5 @@
+﻿pid=15220
+end=2026-11-21T01:45:57.0411634+09:00
+idle_minutes=5.17
+responding=True
+title=H

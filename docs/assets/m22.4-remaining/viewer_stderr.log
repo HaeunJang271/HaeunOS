@@ -1,0 +1,8 @@
+[haeun-evt] key pid=1 sc=0x03 down
+[haeun-evt] key pid=2 sc=0x03 up
+[haeun-evt] key pid=2 sc=0x2d down
+[haeun-evt] key pid=2 sc=0x2d up
+[haeun-evt] key pid=1 sc=0x02 down
+[haeun-evt] key pid=3 sc=0x02 up
+[haeun-evt] key pid=1 sc=0x01 down
+[haeun-evt] key pid=1 sc=0x01 up

@@ -1,0 +1,13 @@
+﻿01:40:42.278 minimized Cursor pid=25384
+01:40:43.286 viewer L=500 T=200 R=1156 B=599 iconic=False
+01:40:43.462 click rel=(0.25,0.12) abs=(664,248)
+01:40:44.604 captured step7_01_editor_open.png
+01:40:44.763 click rel=(0.62,0.45) abs=(907,380)
+01:40:45.567 captured step7_02_after_key_in_app.png
+01:40:45.724 click rel=(0.18,0.12) abs=(618,248)
+01:40:46.968 captured step7_03_after_shell_key1.png
+01:40:46.993 step9_idle_begin 2026-11-21T01:40:46.9860364+09:00
+01:40:47.005 sleeping 310 seconds for step9 idle
+01:45:57.048 idle_end uptime_min=5.17 responding=True title=H
+01:45:57.829 captured step9_01_after_idle.png
+01:45:57.987 click rel=(0.20,0.12) abs=(631,248)
