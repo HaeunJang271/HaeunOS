@@ -13,10 +13,9 @@ They are also embedded (possibly recompressed) in `../HaeunOS_FOSDEM_5min_Talk_R
 
 ## External capture tree (optional, outside this Git repository)
 
-Author-host Windows capture directory (sibling of the clone):
+Author-host Windows capture directory (optional; sibling of the clone, outside this Git repository):
 
 `../HaeunOS-FOSDEM-Evidence/capture_20261120_025847/`
-(absolute example: `C:\Users\level\OneDrive\Desktop\Projects2\HaeunOS-FOSDEM-Evidence\capture_20261120_025847`)
 
 That capture may include fuller logs (MMU/TLB, desktop smoke, SDK workflow). Treat it as **local evidence**, not as a substitute for:
 
@@ -31,4 +30,5 @@ That capture may include fuller logs (MMU/TLB, desktop smoke, SDK workflow). Tre
 | Viewer `frames=N` | Viewer path drew frames |
 | PPM / 320×180 PNG dump | Framebuffer snapshot after N steps |
 | m22.3 scripted tests | Scripted guest input — **not** physical HID |
-| Empty Result column in manual checklist | Remains **NOT TESTED** |
+| Blank Result cell left empty by an operator | Remains **NOT TESTED** until filled |
+| Current filled Win32 manual checklist | **9 PASS** — see [docs/m22.4-manual-validation.md](../../../../docs/m22.4-manual-validation.md); demo GIF is partial visual evidence only |

@@ -17,7 +17,8 @@ It is **not** a replacement for the separate AROS research package under `resear
 | Microkernel | **No** — do not describe HaeunOS as a microkernel |
 | Bare-metal / PC-bootable OS | **No** |
 | Related to Amiga AROS | **No** (acronym coincidence only) |
-| Physical HID validation status | **Partial** — 28s local Win32 demo (../../../docs/assets/haeunos-demo.gif) covers steps 1–5 and 8; repeat-launch, mouse-focus, and 5-minute soak remain NOT TESTED |
+| Manual Win32 checklist (9 steps) | **9 PASS** — authoritative: [docs/m22.4-manual-validation.md](../../../docs/m22.4-manual-validation.md) |
+| Demo GIF / physical HID framing | GIF (../../../docs/assets/haeunos-demo.gif) is **partial visual evidence** for steps 1–5 and 8 only. Steps 6, 7, and 9 are checklist PASS on live Win32 `--viewer`; do **not** automatically equate those application-level checks with complete physical HID hardware validation |
 
 ## Directory inventory
 
@@ -27,9 +28,10 @@ It is **not** a replacement for the separate AROS research package under `resear
 | `demo-checklist.md` | Present |
 | `HaeunOS_FOSDEM_5min_Talk_Revised.pptx` | **Verified** — 6 slides; slide 4 embeds two terminal captures; slide 5 embeds a 320×180 HAEUN-OS framebuffer |
 | `HaeunOS_FOSDEM_5min_Script_KO_EN_Final.docx` | **Verified** — bilingual 5-minute speaker script (EN spoken / KO practice) |
-| `HaeunOS_FOSDEM_QA_10min_KO_EN_Final_checked.docx` | **Verified** — bilingual Q&A guide (checked edition) |
+| `HaeunOS_FOSDEM_QA_10min_KO_EN_Final_checked.pdf` | **Verified** — bilingual Q&A guide (checked edition PDF; 7 pages) |
+| `HaeunOS_FOSDEM_QA_10min_KO_EN_Final_checked.docx` | **NOT PRESENT** — DOCX copy is not in this directory; use the PDF above |
 | `evidence/` | **Verified** — three capture PNGs plus `evidence/README.md` (see below) |
-| `../../../docs/assets/haeunos-demo.gif` | **Verified** — 28s local Win32 viewer demo covering manual-validation steps 1–5 and 8; steps 6, 7, 9 remain NOT TESTED |
+| `../../../docs/assets/haeunos-demo.gif` | **Verified** — short local Win32 viewer demo; visual coverage of checklist steps 1–5 and 8 only (**not** proof of all nine steps). Full checklist: **9 PASS** in `docs/m22.4-manual-validation.md` |
 
 ### PPTX evidence check (local inspection)
 

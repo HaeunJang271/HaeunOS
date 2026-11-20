@@ -68,7 +68,7 @@ python3 tests/m7_guest_gui_tests.py ./build/haeun-vm
 | Area | Result | Scope | Source |
 |------|--------|-------|--------|
 | Linux CI | Ubuntu 24.04 automated build and test workflow | Runs `make clean`, `make all`, and `make test`; this describes workflow coverage, not a historical success count | [`.github/workflows/linux-ci.yml`](.github/workflows/linux-ci.yml) |
-| Win32 manual validation | **6 PASS / 3 NOT TESTED** | 9-step checklist; steps 6, 7, and 9 remain untested | [`docs/m22.4-manual-validation.md`](docs/m22.4-manual-validation.md) |
+| Win32 manual validation | **9 PASS** | Full 9-step checklist; demo GIF remains partial visual evidence (not proof of all nine steps) | [`docs/m22.4-manual-validation.md`](docs/m22.4-manual-validation.md) |
 | R47 confirmatory experiments | **300** total runs | W1/W2/W3, **100** runs per campaign | [`docs/r47-final-evidence-report.md`](docs/r47-final-evidence-report.md) |
 | R47 policy tally | **50/50/0** per policy per campaign | requested/success/fail for RR and FIFO separately | same report |
 | R47 discrimination | **H5 not met**; no `SELECT_FIFO` cells | All reported real cells selected **RR**; **not** scheduler performance superiority | same report |
@@ -128,8 +128,11 @@ These layers are **separate**. Do not combine them into one success rate.
 
 #### Manual Win32 viewer validation
 
-- Checklist: [docs/m22.4-manual-validation.md](docs/m22.4-manual-validation.md) (9 steps).
-- Recorded session evidence: **6 PASS** (steps 1–5 and 8), **3 NOT TESTED** (steps 6, 7, and 9 — repeat launch, mouse-focus switching, 5-minute soak).
+- Checklist: [docs/m22.4-manual-validation.md](docs/m22.4-manual-validation.md) (9 steps): **9 PASS**.
+- Evidence layers (do not conflate):
+  - Demo GIF: short local Win32 viewer session covering steps **1–5 and 8** visually; **not** proof of all nine checklist steps.
+  - Steps **1–5 and 8**: previously documented physical HID / live-viewer evidence (including the GIF).
+  - Steps **6, 7, and 9** (repeat launch, mouse-focus switching, ≥5-minute soak): checklist **PASS** on live Win32 `--viewer`; do **not** automatically equate these application-level Win32 checks with complete physical HID hardware validation.
 - Scripted `--input-script` / PPM OCR paths are **not** physical HID PASS.
 
 ### AROS research details
@@ -188,7 +191,7 @@ Submission **target**: Kernel Devroom (not an acceptance claim). Materials: [res
 
 - Not bare-metal / not PC-bootable; guest ISA is custom HAEUN-32 (not RISC-V).
 - Linux interactive viewer is **not** supported (stub only).
-- Manual Win32 HID validation remains **partial** (6 PASS / 3 NOT TESTED).
+- Manual Win32 checklist is **9/9 PASS**; the demo GIF remains partial visual evidence, and steps 6/7/9 are not claimed as complete physical HID hardware validation.
 - R47 does **not** establish scheduler performance superiority; H5 was not met.
 - AROS does **not** autonomously APPLY policy by default (SHADOW default).
 - Broader caps: [docs/limitations.md](docs/limitations.md).
