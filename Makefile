@@ -14,7 +14,7 @@ HXF_TEST_BIN := $(BUILD)/hxf-tests
 PYTHON ?= python3
 endif
 
-.PHONY: all test toolchain-test clean release images sdk
+.PHONY: all test toolchain-test clean release images sdk release-provenanced release-gate-test
 .DEFAULT_GOAL := all
 
 ifeq ($(OS),Windows_NT)
@@ -321,8 +321,19 @@ all: $(VM_BIN) $(MKFS_BIN) $(FSCK_BIN)
 images: all
 	$(PYTHON) tools/package_release.py --images-only
 
+# Legacy packaging: no smoke-authorized provenance. Prefer release-provenanced.
 release: all
 	$(PYTHON) tools/package_release.py
+
+# Sequential provenance-aware gate (product smoke only; never runs `make test`).
+release-provenanced:
+	$(PYTHON) tools/release_gate.py
+
+# Authorization/regression suite only (no product packaging).
+# Prerequisite: GCC (`gcc`) on PATH — fixture stubs are compiled with gcc.
+# Missing GCC fails closed with a clear error (never silent PASS / skip).
+release-gate-test:
+	$(PYTHON) tests/release_gate/run_suite.py
 
 sdk: all
 	$(PYTHON) tools/package_sdk.py
