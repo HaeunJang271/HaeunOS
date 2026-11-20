@@ -6,6 +6,18 @@
 
 The GIF above is a **short local Win32 viewer session** (Calc / Editor / Files and clean Esc exit). It does **not** represent full product validation, Linux CI, or complete physical HID coverage. See [Validation and test coverage](#validation-and-test-coverage).
 
+### Why HaeunOS?
+
+I wanted to understand how an operating system works beyond what textbooks and existing implementations could teach me.
+
+Rather than studying its components in isolation, I chose to design and implement an operating system myself. By building each part and seeing how the pieces interact, I could learn the underlying principles through hands-on engineering.
+
+HaeunOS began as a learning project driven by one simple question:
+
+**What can I understand about operating systems by building one from the ground up?**
+
+It has since grown into an ongoing systems engineering and research project.
+
 ### What is HaeunOS?
 
 HAEUN-OS is a research operating-system stack built around a custom **32-bit guest ISA (HAEUN-32)** and a **host-side C17 interpreter** in [`src/vm.c`](src/vm.c). Guest instructions are interpreted; they are not executed natively by the host CPU.
