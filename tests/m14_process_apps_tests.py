@@ -2,8 +2,10 @@
 """M14: launcher + three independent app HXFs under --apps."""
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,7 +54,7 @@ def main(argv: list[str]) -> int:
     if len(argv) != 2:
         print("usage: m14_process_apps_tests.py <haeun-vm>", file=sys.stderr)
         return 2
-    vm = Path(argv[1])
+    vm = Path(argv[1]).resolve()
     out = ROOT / "build"
     out.mkdir(parents=True, exist_ok=True)
     (out / "process_apps.hxf").write_bytes(build_process_apps.build())
@@ -82,7 +84,36 @@ def main(argv: list[str]) -> int:
     except AssertionError as exc:
         print(exc, file=sys.stderr)
         return 1
-    print("m14 process apps tests passed")
+    # Re-run from a relocated package-like directory containing images/ only.
+    # This verifies the fallback path without relying on the repository build/.
+    with tempfile.TemporaryDirectory(prefix="haeunos-m14-images-") as temp:
+        package_root = Path(temp)
+        images = package_root / "images"
+        images.mkdir()
+
+        shutil.copy2(out / "process_apps.hxf", images / "process_apps.hxf")
+        for name in ("app_calc.hxf", "app_edit.hxf", "app_files.hxf"):
+            shutil.copy2(out / name, images / name)
+
+        relocated = subprocess.run(
+            [str(vm), str(images / "process_apps.hxf"), "--apps"],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=120,
+            cwd=str(package_root),
+        )
+        relocated_blob = (relocated.stdout or "") + (relocated.stderr or "")
+        if relocated.returncode != 0:
+            print(relocated_blob, file=sys.stderr)
+            return 1
+        try:
+            _require_clean_run(relocated_blob, relocated.stdout)
+        except AssertionError as exc:
+            print(exc, file=sys.stderr)
+            return 1
+
+    print("m14 process apps tests passed (build/ and images/)")
     return 0
 
 

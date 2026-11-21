@@ -120,36 +120,69 @@ static int register_one_app(haeun_vm_gui_host *host, const char *name,
 	return 0;
 }
 
+static int find_builtin_app_path(const char *filename, char *path,
+                                 size_t path_size)
+{
+        static const char *dirs[] = {"build", "images"};
+        size_t i;
+
+        for (i = 0; i < sizeof(dirs) / sizeof(dirs[0]); ++i) {
+                FILE *file;
+                int n = snprintf(path, path_size, "%s/%s", dirs[i], filename);
+
+                if (n < 0 || (size_t)n >= path_size)
+                        return -1;
+                file = fopen(path, "rb");
+                if (file != NULL) {
+                        (void)fclose(file);
+                        return 1;
+                }
+        }
+        return 0;
+}
+
 static int register_builtin_apps(haeun_vm_gui_host *host)
 {
-	static const char *names[] = {"calc", "edit", "files"};
-	static const char *descs[] = {"12+34 demo", "text edit", "file list"};
-	static const char *cats[] = {"demo", "tools", "tools"};
-	static const char *paths[] = {"build/app_calc.hxf", "build/app_edit.hxf",
-				      "build/app_files.hxf"};
-	size_t i;
-	for (i = 0; i < 3u; ++i) {
-		if (register_one_app(host, names[i], paths[i]) != 0)
-			return -1;
-		(void)haeun_app_set_meta(&host->apps, (int)i, descs[i], "1.0",
-					 cats[i], 0u);
-	}
-	/* Optional M20.6 windowless service binary. */
-	if (register_one_app(host, "svcidle", "build/app_svc_idle.hxf") == 0) {
-		int idx = haeun_app_count(&host->apps) - 1;
-		(void)haeun_app_set_meta(&host->apps, idx, "idle svc", "1.0", "svc",
-					 HAEUN_APP_FLAG_SINGLE);
-		(void)haeun_sm_register(&host->sm, "idle", "event-stop idle", "1.0",
-					 idx, HAEUN_SM_START_MANUAL,
-					 HAEUN_SM_RESTART_ON_FAIL);
-	}
-	/* Optional M20.7 GUI file manager. */
-	if (register_one_app(host, "filemgr", "build/app_filemgr.hxf") == 0) {
-		int idx = haeun_app_count(&host->apps) - 1;
-		(void)haeun_app_set_meta(&host->apps, idx, "HFS files", "1.0",
-					 "tools", 0u);
-	}
-	return 0;
+        static const char *names[] = {"calc", "edit", "files"};
+        static const char *files[] = {
+                "app_calc.hxf", "app_edit.hxf", "app_files.hxf"
+        };
+        static const char *descs[] = {"12+34 demo", "text edit", "file list"};
+        static const char *cats[] = {"demo", "tools", "tools"};
+        char path[128];
+        size_t i;
+
+        for (i = 0; i < 3u; ++i) {
+                if (find_builtin_app_path(files[i], path, sizeof(path)) != 1) {
+                        (void)fprintf(stderr, "missing required app image %s\n",
+                                      files[i]);
+                        return -1;
+                }
+                if (register_one_app(host, names[i], path) != 0)
+                        return -1;
+                (void)haeun_app_set_meta(&host->apps, (int)i, descs[i], "1.0",
+                                         cats[i], 0u);
+        }
+
+        /* Optional M20.6 windowless service binary. */
+        if (find_builtin_app_path("app_svc_idle.hxf", path, sizeof(path)) == 1 &&
+            register_one_app(host, "svcidle", path) == 0) {
+                int idx = haeun_app_count(&host->apps) - 1;
+                (void)haeun_app_set_meta(&host->apps, idx, "idle svc", "1.0",
+                                         "svc", HAEUN_APP_FLAG_SINGLE);
+                (void)haeun_sm_register(&host->sm, "idle", "event-stop idle",
+                                         "1.0", idx, HAEUN_SM_START_MANUAL,
+                                         HAEUN_SM_RESTART_ON_FAIL);
+        }
+
+        /* Optional M20.7 GUI file manager. */
+        if (find_builtin_app_path("app_filemgr.hxf", path, sizeof(path)) == 1 &&
+            register_one_app(host, "filemgr", path) == 0) {
+                int idx = haeun_app_count(&host->apps) - 1;
+                (void)haeun_app_set_meta(&host->apps, idx, "HFS files", "1.0",
+                                         "tools", 0u);
+        }
+        return 0;
 }
 
 static const char *app_stem(const char *path)
