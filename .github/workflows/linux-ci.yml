@@ -38,3 +38,6 @@ jobs:
 
       - name: Test
         run: make test
+      
+      - name: Release Gate Test
+        run: make release-gate-test
