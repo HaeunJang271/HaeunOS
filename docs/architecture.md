@@ -29,7 +29,6 @@ Each boundary uses versioned formats or explicit register contracts.
 
 - [getting-started.md](getting-started.md) · [boot-sequence.md](boot-sequence.md) · [limitations.md](limitations.md)
 - [platform.md](platform.md) · [software-abi.md](software-abi.md) · [isa-v4.md](isa-v4.md)
-- FOSDEM 2027 Kernel Devroom materials: [../research/presentation/fosdem-2027/README.md](../research/presentation/fosdem-2027/README.md)
 
 ## Non-goals
 

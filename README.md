@@ -209,10 +209,6 @@ These are **research manuscripts / technical reports**, not peer-reviewed or ext
 | R4.8 revised manuscript | [research/paper/r48-main-manuscript.md](research/paper/r48-main-manuscript.md) |
 | R47 evidence | [docs/r47-final-evidence-report.md](docs/r47-final-evidence-report.md) |
 
-### FOSDEM 2027 materials
-
-Submission **target**: Kernel Devroom (not an acceptance claim). Materials: [research/presentation/fosdem-2027/](research/presentation/fosdem-2027/).
-
 ### Limitations
 
 - Not bare-metal / not PC-bootable; guest ISA is custom HAEUN-32 (not RISC-V).
