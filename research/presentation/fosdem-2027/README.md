@@ -1,4 +1,4 @@
-# HaeunOS 1.0 — FOSDEM 2027 Kernel Devroom materials
+# A Small Interpreted OS: HaeunOS 1.0 — FOSDEM 2027 Kernel Devroom materials
 
 Submission target: **FOSDEM Kernel Devroom** (systems / research OS demo; not an acceptance claim).
 This directory is for **HaeunOS Release 1.0** (VM + process isolation + desktop/SDK).

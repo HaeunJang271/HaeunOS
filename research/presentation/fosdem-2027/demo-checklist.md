@@ -1,4 +1,4 @@
-# FOSDEM 2027 — HaeunOS 1.0 demo checklist
+# FOSDEM 2027 — A Small Interpreted OS: HaeunOS 1.0 demo checklist
 
 Use this for a **recorded** Windows demo. Mark results only after you observe them.
 

@@ -1,4 +1,4 @@
-# HAEUN-OS 1.0
+# A Small Interpreted OS: HaeunOS 1.0
 
 [![Linux CI](https://github.com/HaeunJang271/HaeunOS/actions/workflows/linux-ci.yml/badge.svg?branch=main)](https://github.com/HaeunJang271/HaeunOS/actions/workflows/linux-ci.yml)
 
@@ -26,6 +26,7 @@ HAEUN-OS is a research operating-system stack built around a custom **32-bit gue
 - **Not** RISC-V and **not** derived from RISC-V.
 - **Not** a native PC-bootable / bare-metal OS.
 - **Not** affiliated with Amiga AROS (AROS Research Operating System); any acronym overlap is coincidental.
+- Guest scheduler (3-slot RR & preemptive FIFO via timer IRQ): [kernel/process/proc_sched.s](kernel/process/proc_sched.s), [proc_policy.s](kernel/process/proc_policy.s)
 
 Intentional caps and host constraints: [docs/limitations.md](docs/limitations.md).
 
